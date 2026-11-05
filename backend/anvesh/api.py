@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field as PField
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import audit, auth, linker, live_ser, official, pipeline, retention, storage
+from . import audit, auth, handoff, handoff_api, linker, live_ser, official, pipeline, retention, storage
 from .auth import Principal
 from .security_http import MAX_UPLOAD_BYTES, SecurityMiddleware
 from .config import settings
@@ -73,6 +73,7 @@ async def lifespan(_app):
 init_db()
 app = FastAPI(title="Anvesh API", version="0.3.0", lifespan=lifespan,
               description="Role-aware cybercrime call intelligence: call → case file → linked rings.")
+app.include_router(handoff_api.router)
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins), allow_credentials=True,
                    allow_methods=["GET", "POST", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-CSRF-Token"],
@@ -172,6 +173,7 @@ def case_detail(db: Session, case: Case, p: Principal | None = None) -> dict:
         "fields": sorted((_field_json(f) for f in case.fields),
                          key=lambda f: list(FIELD_LABELS).index(f["name"]) if f["name"] in FIELD_LABELS else 99),
         "triage": case.triage, "distress": case.distress, "safety": case.safety, "tactics": case.tactics,
+        "handoffs": handoff_api.for_case(db, case.id),
         "copilot": case.copilot,
         "local_context": official.context_for(case.district),
         "official_scam_type": official.playbook_context(case.playbook_key),
@@ -812,6 +814,7 @@ async def live(ws: WebSocket, case_id: str):
         await ws.close(code=4429)
         return
     await ws.accept()
+    handoff.LIVE_CASES.add(case_id)  # safety signals in this call may start an automatic warm transfer
     who = p.actor
     st = M.asr.status()
     if st.state in ("disabled", "error"):
@@ -1004,6 +1007,7 @@ async def live(ws: WebSocket, case_id: str):
     await emo_q.put(None)
     await asr_q.put(None)
     await asyncio.gather(*workers, return_exceptions=True)
+    handoff.LIVE_CASES.discard(case_id)
     detail = None
     if full:
         full_x = A.pcm16_to_float(bytes(full))

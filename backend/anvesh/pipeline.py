@@ -255,6 +255,12 @@ def process(db: Session, case: Case, actor: str = "system", now: datetime | None
                              "police do not arrest anyone over a video call.") if coercion else None,
         "crisis_message": safety.CRISIS_RESOURCE if crisis else None,
         "playbook_advice": pb.advice,
+        # hand-off signals (handoff.py): 112, 181 and 1098; Tele-MANAS uses "crisis"
+        "danger": bool(sig.danger_hits), "danger_hits": sig.danger_hits,
+        "women": bool(sig.women_hits), "women_hits": sig.women_hits,
+        # "my daughter / son" alone is context, not risk: only together with sextortion / threat words
+        "child": bool(sig.child_hits) and bool(sig.women_hits or sig.danger_hits or sig.crisis_hits),
+        "child_hits": sig.child_hits,
     }
 
     # 5) distress track (role-gated, abstains when unsure)
@@ -283,6 +289,13 @@ def process(db: Session, case: Case, actor: str = "system", now: datetime | None
                  {"fields": sorted(current), "priority": t.priority, "score": t.score, "links": n_links,
                   "playbook": pb.key, "coercion": coercion, "crisis": crisis,
                   "distress": d.level}, model_version())
+
+    # 7) helpline hand-off: automatic warm transfer during a live call, suggestions otherwise (handoff.py)
+    try:
+        from . import handoff
+        handoff.on_update(db, case, actor, live=case.id in handoff.LIVE_CASES)
+    except Exception:  # pragma: no cover - a hand-off problem must never break the case file
+        log.exception("hand-off check failed for %s", case.id)
     return case
 
 

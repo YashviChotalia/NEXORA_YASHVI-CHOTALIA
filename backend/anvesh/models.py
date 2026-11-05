@@ -193,6 +193,26 @@ class AuditEvent(Base):
     alg: Mapped[str | None] = mapped_column(String(16), nullable=True)  # None = legacy sha256, "hmac" = keyed
 
 
+class Handoff(Base):
+    """A warm transfer of a live call to a helpline (Tele-MANAS 14416, 112, 181, 1098, 1930). See handoff.py."""
+    __tablename__ = "handoffs"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    case_id: Mapped[str] = mapped_column(String(32), ForeignKey("cases.id"), index=True)
+    helpline: Mapped[str] = mapped_column(String(16))
+    number: Mapped[str] = mapped_column(String(16))
+    reason: Mapped[str | None] = mapped_column(_enc("handoffs", "reason"), nullable=True)  # quotes the caller
+    status: Mapped[str] = mapped_column(String(16))  # suggested | pending | connecting | connected | cancelled | dismissed | failed
+    trigger: Mapped[str] = mapped_column(String(16))  # auto | suggest | officer
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    execute_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    actor: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    call_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    provider_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    evidence: Mapped[list | None] = mapped_column(JSON, nullable=True)  # segment ids and times of the words
+
+
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

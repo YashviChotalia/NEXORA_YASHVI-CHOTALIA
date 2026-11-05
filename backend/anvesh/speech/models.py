@@ -134,7 +134,7 @@ class ASR(_Lazy):
         return WhisperModel(self.model_id, device=settings.asr_device, compute_type=settings.asr_compute)
 
     def _language(self, m, audio: np.ndarray) -> str:
-        """Fixed language, or auto-detect restricted to the allowed set (avoids 'jw', 'ur' ... mislabels)."""
+        """Fixed language, or auto-detect restricted to the allowed set (avoids 'jw' ... mislabels)."""
         cfg = settings.asr_language
         if cfg != "auto":
             return cfg
@@ -142,9 +142,16 @@ class ASR(_Lazy):
         try:  # pragma: no cover - needs model
             _, _, probs = m.detect_language(audio)
             probs = dict(probs)
-            return max(allowed, key=lambda l: probs.get(l, 0.0))
+            lang = max(allowed, key=lambda l: probs.get(l, 0.0))
         except Exception:
-            return allowed[0] if allowed else "hi"
+            lang = allowed[0] if allowed else "hi"
+        return "hi" if (lang == "ur" and settings.asr_urdu_as_hindi) else lang
+
+    @staticmethod
+    def use_indic(lang: str | None) -> bool:
+        from .indic_asr import LANGUAGES
+        return bool(lang) and lang in LANGUAGES and (lang != "hi" or settings.indic_asr_for_hindi) \
+            and indic.get(block=True) is not None
 
     def transcribe(self, audio: np.ndarray, offset: float = 0.0, language: str | None = None,
                    previous_text: str = "") -> tuple[list[dict], str | None]:
@@ -154,6 +161,19 @@ class ASR(_Lazy):
         if m is None:
             raise RuntimeError(f"{self.name} model not available ({self._error})")
         lang = language or self._language(m, audio)
+        if not language and self.use_indic(lang):
+            # Whisper knows that it is an Indian language but often not which one (Bengali heard as Nepali, ...):
+            # IndicConformer decides among its 22 languages from its own vocabularies.
+            ranked = indic.get(block=True).identify(audio)
+            if ranked:
+                lang = ranked[0][0]  # "hi" (unless ANVESH_INDIC_ASR_HINDI) falls through to Whisper below
+        if self.use_indic(lang):
+            segs = indic.get(block=True).transcribe(audio, lang, offset)
+            self.last_stats = {"engine": "indicconformer", "lang": lang, "kept": len(segs)}
+            for sg in segs:
+                sg["text_native"] = sg["text"]
+                sg["text"] = to_roman(sg["text"])  # Devanagari-script languages get Roman text; others stay native
+            return segs, lang
         # Fallback re-decoding at higher temperatures made one live chunk take ~50 s when Whisper looped on
         # Hindi; for live audio use a single pass and stop loops with no-repeat n-grams instead.
         kwargs = dict(language=lang, task="transcribe", vad_filter=True, word_timestamps=not self.live,
@@ -302,17 +322,40 @@ class SpoofDetector(_Lazy):
         return float(np.mean(scores)) if scores else None
 
 
+class IndicASR(_Lazy):
+    """AI4Bharat IndicConformer for 22 Indian languages (see speech/indic_asr.py)."""
+    name = "asr_indic"
+    license = "MIT (AI4Bharat IndicConformer)"
+
+    def _load(self):  # pragma: no cover - needs model files
+        from pathlib import Path
+
+        from .indic_asr import IndicConformer
+        if not (Path(self.model_id) / "assets" / "encoder.onnx").exists():
+            # gated on Hugging Face: accept the model's terms and sign in (huggingface-cli login) first
+            from huggingface_hub import snapshot_download
+            snapshot_download("ai4bharat/indic-conformer-600m-multilingual", local_dir=self.model_id,
+                              allow_patterns=["assets/*", "config.json", "README.md"])
+        return IndicConformer(self.model_id)
+
+
+def _indic_dir() -> str:
+    from .indic_asr import default_dir
+    return settings.indic_asr_dir or str(default_dir())
+
+
 asr = ASR(settings.asr_model, settings.enable_asr)
 asr_final = FinalASR(settings.asr_final_model, settings.enable_asr and settings.enable_asr_final
                      and settings.asr_final_model != settings.asr_model)
 emotion = Emotion(settings.emotion_model, settings.enable_emotion)
 speaker = Speaker("speechbrain/spkrec-ecapa-voxceleb", settings.enable_speaker)
 spoof = SpoofDetector(settings.spoof_model, settings.enable_spoof)
+indic = IndicASR(_indic_dir(), settings.enable_indic_asr and settings.enable_asr)
 
 
 def warmup() -> None:
     """Start loading every enabled model in the background (downloads on first run)."""
-    for m in (asr, emotion, speaker, asr_final, spoof):
+    for m in (asr, emotion, speaker, asr_final, spoof, indic):
         m.start_loading()
 
 
@@ -322,4 +365,4 @@ def best_asr() -> ASR:
 
 
 def statuses() -> list[dict]:
-    return [s.status().__dict__ for s in (asr, asr_final, emotion, speaker, spoof)]
+    return [s.status().__dict__ for s in (asr, asr_final, indic, emotion, speaker, spoof)]

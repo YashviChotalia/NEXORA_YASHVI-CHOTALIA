@@ -8,3 +8,4 @@ speechbrain==1.0.2             # ECAPA speaker embeddings, Apache-2.0
 # optional, better cross-language script matching:
 # sentence-transformers==3.3.1  (set ANVESH_TEXT_EMBEDDER=paraphrase-multilingual-MiniLM-L12-v2)
 transformers>=4.40,<5         # synthetic-voice detector (ANVESH_SPOOF_MODEL, audio-classification)
+onnxruntime==1.20.1            # IndicConformer (22 Indian languages, AI4Bharat, MIT)

@@ -21,7 +21,8 @@ def _say(cid, *lines, speaker="caller"):
 
 def test_health_reports_models_honestly():
     r = client.get("/api/health").json()
-    assert r["ok"] and {m["name"] for m in r["models"]} == {"asr", "asr_final", "voice_emotion", "speaker_embedding", "voice_authenticity"}
+    assert r["ok"] and {m["name"] for m in r["models"]} == {"asr", "asr_final", "asr_indic", "voice_emotion", "speaker_embedding",
+                                                            "voice_authenticity"}
     assert all(not m["loaded"] for m in r["models"])  # disabled in tests
 
 

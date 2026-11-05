@@ -1,0 +1,707 @@
+{
+ "model": "iic/emotion2vec_plus_base",
+ "system": "telephone-adapted head",
+ "role_prior": "victim",
+ "uncertain_threshold": 0.45,
+ "conditions": {
+  "clean": {
+   "metrics": {
+    "clips": 540,
+    "answered": 513,
+    "abstain_rate": 0.05,
+    "accuracy": 0.8050682261208577,
+    "macro_recall": 0.8063152808418421,
+    "attention_precision": 0.9259259259259259,
+    "attention_recall": 0.981675392670157,
+    "attention_f1": 0.9529860228716646,
+    "false_alarm_on_neutral": 0.22900763358778625,
+    "recall": {
+     "neutral": 0.7709923664122137,
+     "angry": 0.8529411764705882,
+     "fearful": 0.8608695652173913,
+     "sad": 0.7404580152671756
+    }
+   },
+   "with_quality_gate": {
+    "clips": 540,
+    "answered": 512,
+    "abstain_rate": 0.05185185185185185,
+    "accuracy": 0.8046875,
+    "macro_recall": 0.8060101702392488,
+    "attention_precision": 0.9257425742574258,
+    "attention_recall": 0.9816272965879265,
+    "attention_f1": 0.9528662420382165,
+    "false_alarm_on_neutral": 0.22900763358778625,
+    "recall": {
+     "neutral": 0.7709923664122137,
+     "angry": 0.8529411764705882,
+     "fearful": 0.8596491228070176,
+     "sad": 0.7404580152671756
+    }
+   },
+   "ece": 0.03451928838951326,
+   "sweep": [
+    {
+     "threshold": 0.0,
+     "coverage": 0.9888888888888889,
+     "accuracy": 0.7846441947565543,
+     "attention_recall": 0.9771573604060914
+    },
+    {
+     "threshold": 0.3,
+     "coverage": 0.9888888888888889,
+     "accuracy": 0.7846441947565543,
+     "attention_recall": 0.9771573604060914
+    },
+    {
+     "threshold": 0.35,
+     "coverage": 0.9851851851851852,
+     "accuracy": 0.7857142857142857,
+     "attention_recall": 0.9770408163265306
+    },
+    {
+     "threshold": 0.4,
+     "coverage": 0.9685185185185186,
+     "accuracy": 0.7954110898661568,
+     "attention_recall": 0.9794344473007712
+    },
+    {
+     "threshold": 0.45,
+     "coverage": 0.95,
+     "accuracy": 0.8050682261208577,
+     "attention_recall": 0.981675392670157
+    },
+    {
+     "threshold": 0.5,
+     "coverage": 0.9277777777777778,
+     "accuracy": 0.810379241516966,
+     "attention_recall": 0.9813333333333333
+    },
+    {
+     "threshold": 0.6,
+     "coverage": 0.8333333333333334,
+     "accuracy": 0.8422222222222222,
+     "attention_recall": 0.9880597014925373
+    },
+    {
+     "threshold": 0.7,
+     "coverage": 0.7018518518518518,
+     "accuracy": 0.8707124010554089,
+     "attention_recall": 0.9858156028368794
+    },
+    {
+     "threshold": 0.8,
+     "coverage": 0.49629629629629635,
+     "accuracy": 0.9029850746268657,
+     "attention_recall": 0.9947368421052631
+    },
+    {
+     "threshold": 0.9,
+     "coverage": 0.3481481481481481,
+     "accuracy": 0.9414893617021277,
+     "attention_recall": 1.0
+    }
+   ]
+  },
+  "phone": {
+   "metrics": {
+    "clips": 540,
+    "answered": 456,
+    "abstain_rate": 0.15555555555555556,
+    "accuracy": 0.6644736842105263,
+    "macro_recall": 0.6729239242253422,
+    "attention_precision": 0.9285714285714286,
+    "attention_recall": 0.9447674418604651,
+    "attention_f1": 0.936599423631124,
+    "false_alarm_on_neutral": 0.22321428571428573,
+    "recall": {
+     "neutral": 0.7767857142857143,
+     "angry": 0.5112781954887218,
+     "fearful": 0.7184466019417476,
+     "sad": 0.6851851851851852
+    }
+   },
+   "with_quality_gate": {
+    "clips": 540,
+    "answered": 456,
+    "abstain_rate": 0.15555555555555556,
+    "accuracy": 0.6644736842105263,
+    "macro_recall": 0.6729239242253422,
+    "attention_precision": 0.9285714285714286,
+    "attention_recall": 0.9447674418604651,
+    "attention_f1": 0.936599423631124,
+    "false_alarm_on_neutral": 0.22321428571428573,
+    "recall": {
+     "neutral": 0.7767857142857143,
+     "angry": 0.5112781954887218,
+     "fearful": 0.7184466019417476,
+     "sad": 0.6851851851851852
+    }
+   },
+   "ece": 0.07890790513833984,
+   "sweep": [
+    {
+     "threshold": 0.0,
+     "coverage": 0.937037037037037,
+     "accuracy": 0.6383399209486166,
+     "attention_recall": 0.9224598930481284
+    },
+    {
+     "threshold": 0.3,
+     "coverage": 0.937037037037037,
+     "accuracy": 0.6383399209486166,
+     "attention_recall": 0.9224598930481284
+    },
+    {
+     "threshold": 0.35,
+     "coverage": 0.9296296296296296,
+     "accuracy": 0.6394422310756972,
+     "attention_recall": 0.9222520107238605
+    },
+    {
+     "threshold": 0.4,
+     "coverage": 0.8833333333333333,
+     "accuracy": 0.6582809224318659,
+     "attention_recall": 0.9352112676056338
+    },
+    {
+     "threshold": 0.45,
+     "coverage": 0.8444444444444444,
+     "accuracy": 0.6644736842105263,
+     "attention_recall": 0.9447674418604651
+    },
+    {
+     "threshold": 0.5,
+     "coverage": 0.7666666666666666,
+     "accuracy": 0.7028985507246377,
+     "attention_recall": 0.9555555555555556
+    },
+    {
+     "threshold": 0.6,
+     "coverage": 0.6111111111111112,
+     "accuracy": 0.7757575757575758,
+     "attention_recall": 0.96
+    },
+    {
+     "threshold": 0.7,
+     "coverage": 0.4740740740740741,
+     "accuracy": 0.859375,
+     "attention_recall": 0.9680851063829787
+    },
+    {
+     "threshold": 0.8,
+     "coverage": 0.2851851851851852,
+     "accuracy": 0.9090909090909091,
+     "attention_recall": 0.9702970297029703
+    },
+    {
+     "threshold": 0.9,
+     "coverage": 0.17407407407407405,
+     "accuracy": 0.925531914893617,
+     "attention_recall": 0.9875
+    }
+   ]
+  }
+ },
+ "comparison": {
+  "emotions": {
+   "clean": {
+    "all": {
+     "clips": 540,
+     "answered": 534,
+     "abstain_rate": 0.011111111111111112,
+     "accuracy": 0.8089887640449438,
+     "macro_recall": 0.806151759264857,
+     "attention_precision": 0.9461538461538461,
+     "attention_recall": 0.9365482233502538,
+     "attention_f1": 0.9413265306122448,
+     "false_alarm_on_neutral": 0.15,
+     "recall": {
+      "neutral": 0.85,
+      "angry": 0.8273381294964028,
+      "fearful": 0.7310924369747899,
+      "sad": 0.8161764705882353
+     }
+    },
+    "live": {
+     "clips": 540,
+     "answered": 524,
+     "abstain_rate": 0.02962962962962963,
+     "accuracy": 0.8148854961832062,
+     "macro_recall": 0.8123729368645352,
+     "attention_precision": 0.9451697127937336,
+     "attention_recall": 0.9378238341968912,
+     "attention_f1": 0.94148244473342,
+     "false_alarm_on_neutral": 0.15217391304347827,
+     "recall": {
+      "neutral": 0.8478260869565217,
+      "angry": 0.8321167883211679,
+      "fearful": 0.75,
+      "sad": 0.8195488721804511
+     }
+    },
+    "ece": 0.1318338014981274
+   },
+   "phone": {
+    "all": {
+     "clips": 540,
+     "answered": 506,
+     "abstain_rate": 0.06296296296296296,
+     "accuracy": 0.6778656126482213,
+     "macro_recall": 0.6771335016219927,
+     "attention_precision": 0.9502923976608187,
+     "attention_recall": 0.8689839572192514,
+     "attention_f1": 0.9078212290502793,
+     "false_alarm_on_neutral": 0.12878787878787878,
+     "recall": {
+      "neutral": 0.8712121212121212,
+      "angry": 0.55,
+      "fearful": 0.5478260869565217,
+      "sad": 0.7394957983193278
+     }
+    },
+    "live": {
+     "clips": 540,
+     "answered": 497,
+     "abstain_rate": 0.07962962962962963,
+     "accuracy": 0.6841046277665996,
+     "macro_recall": 0.6839494220501086,
+     "attention_precision": 0.954954954954955,
+     "attention_recall": 0.8664850136239782,
+     "attention_f1": 0.9085714285714286,
+     "false_alarm_on_neutral": 0.11538461538461539,
+     "recall": {
+      "neutral": 0.8846153846153846,
+      "angry": 0.5507246376811594,
+      "fearful": 0.5526315789473685,
+      "sad": 0.7478260869565218
+     }
+    },
+    "ece": 0.24880167984189733
+   }
+  },
+  "head": {
+   "clean": {
+    "all": {
+     "clips": 540,
+     "answered": 534,
+     "abstain_rate": 0.011111111111111112,
+     "accuracy": 0.7846441947565543,
+     "macro_recall": 0.7863898796928844,
+     "attention_precision": 0.9123222748815166,
+     "attention_recall": 0.9771573604060914,
+     "attention_f1": 0.9436274509803921,
+     "false_alarm_on_neutral": 0.2642857142857143,
+     "recall": {
+      "neutral": 0.7357142857142858,
+      "angry": 0.8489208633093526,
+      "fearful": 0.8403361344537815,
+      "sad": 0.7205882352941176
+     }
+    },
+    "live": {
+     "clips": 540,
+     "answered": 513,
+     "abstain_rate": 0.05,
+     "accuracy": 0.8050682261208577,
+     "macro_recall": 0.8063152808418421,
+     "attention_precision": 0.9259259259259259,
+     "attention_recall": 0.981675392670157,
+     "attention_f1": 0.9529860228716646,
+     "false_alarm_on_neutral": 0.22900763358778625,
+     "recall": {
+      "neutral": 0.7709923664122137,
+      "angry": 0.8529411764705882,
+      "fearful": 0.8608695652173913,
+      "sad": 0.7404580152671756
+     }
+    },
+    "ece": 0.03451928838951326
+   },
+   "phone": {
+    "all": {
+     "clips": 540,
+     "answered": 506,
+     "abstain_rate": 0.06296296296296296,
+     "accuracy": 0.6383399209486166,
+     "macro_recall": 0.6423593350383632,
+     "attention_precision": 0.9126984126984127,
+     "attention_recall": 0.9224598930481284,
+     "attention_f1": 0.9175531914893617,
+     "false_alarm_on_neutral": 0.25,
+     "recall": {
+      "neutral": 0.75,
+      "angry": 0.4857142857142857,
+      "fearful": 0.6782608695652174,
+      "sad": 0.6554621848739496
+     }
+    },
+    "live": {
+     "clips": 540,
+     "answered": 456,
+     "abstain_rate": 0.15555555555555556,
+     "accuracy": 0.6644736842105263,
+     "macro_recall": 0.6729239242253422,
+     "attention_precision": 0.9285714285714286,
+     "attention_recall": 0.9447674418604651,
+     "attention_f1": 0.936599423631124,
+     "false_alarm_on_neutral": 0.22321428571428573,
+     "recall": {
+      "neutral": 0.7767857142857143,
+      "angry": 0.5112781954887218,
+      "fearful": 0.7184466019417476,
+      "sad": 0.6851851851851852
+     }
+    },
+    "ece": 0.07890790513833984
+   }
+  }
+ },
+ "per_language": {
+  "bengali": {
+   "clean": {
+    "clips": 80,
+    "answered": 80,
+    "abstain_rate": 0.0,
+    "accuracy": 0.9,
+    "macro_recall": 0.9,
+    "attention_precision": 1.0,
+    "attention_recall": 1.0,
+    "attention_f1": 1.0,
+    "false_alarm_on_neutral": 0.0,
+    "recall": {
+     "neutral": 1.0,
+     "angry": 0.7,
+     "fearful": 1.0,
+     "sad": 0.9
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 79,
+    "abstain_rate": 0.0125,
+    "accuracy": 0.7721518987341772,
+    "macro_recall": 0.7644736842105263,
+    "attention_precision": 1.0,
+    "attention_recall": 1.0,
+    "attention_f1": 1.0,
+    "false_alarm_on_neutral": 0.0,
+    "recall": {
+     "neutral": 1.0,
+     "angry": 0.15789473684210525,
+     "fearful": 1.0,
+     "sad": 0.9
+    }
+   }
+  },
+  "french": {
+   "clean": {
+    "clips": 80,
+    "answered": 79,
+    "abstain_rate": 0.0125,
+    "accuracy": 0.8481012658227848,
+    "macro_recall": 0.8467105263157895,
+    "attention_precision": 0.9230769230769231,
+    "attention_recall": 1.0,
+    "attention_f1": 0.9600000000000001,
+    "false_alarm_on_neutral": 0.2631578947368421,
+    "recall": {
+     "neutral": 0.7368421052631579,
+     "angry": 0.95,
+     "fearful": 1.0,
+     "sad": 0.7
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 80,
+    "abstain_rate": 0.0,
+    "accuracy": 0.7875,
+    "macro_recall": 0.7875,
+    "attention_precision": 0.9365079365079365,
+    "attention_recall": 0.9833333333333333,
+    "attention_f1": 0.9593495934959351,
+    "false_alarm_on_neutral": 0.2,
+    "recall": {
+     "neutral": 0.8,
+     "angry": 0.85,
+     "fearful": 0.9,
+     "sad": 0.6
+    }
+   }
+  },
+  "german": {
+   "clean": {
+    "clips": 60,
+    "answered": 56,
+    "abstain_rate": 0.06666666666666667,
+    "accuracy": 1.0,
+    "macro_recall": 1.0,
+    "attention_precision": 1.0,
+    "attention_recall": 1.0,
+    "attention_f1": 1.0,
+    "false_alarm_on_neutral": 0.0,
+    "recall": {
+     "neutral": 1.0,
+     "angry": 1.0,
+     "fearful": null,
+     "sad": 1.0
+    }
+   },
+   "phone": {
+    "clips": 60,
+    "answered": 38,
+    "abstain_rate": 0.36666666666666664,
+    "accuracy": 0.8421052631578947,
+    "macro_recall": 0.8333333333333334,
+    "attention_precision": 1.0,
+    "attention_recall": 0.9583333333333334,
+    "attention_f1": 0.9787234042553191,
+    "false_alarm_on_neutral": 0.0,
+    "recall": {
+     "neutral": 1.0,
+     "angry": 0.75,
+     "fearful": null,
+     "sad": 0.75
+    }
+   }
+  },
+  "italian": {
+   "clean": {
+    "clips": 80,
+    "answered": 78,
+    "abstain_rate": 0.025,
+    "accuracy": 0.9102564102564102,
+    "macro_recall": 0.9105263157894737,
+    "attention_precision": 0.9833333333333333,
+    "attention_recall": 1.0,
+    "attention_f1": 0.9915966386554621,
+    "false_alarm_on_neutral": 0.05263157894736842,
+    "recall": {
+     "neutral": 0.9473684210526315,
+     "angry": 0.9,
+     "fearful": 0.9,
+     "sad": 0.8947368421052632
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 76,
+    "abstain_rate": 0.05,
+    "accuracy": 0.7368421052631579,
+    "macro_recall": 0.7306114551083591,
+    "attention_precision": 0.8923076923076924,
+    "attention_recall": 0.9830508474576272,
+    "attention_f1": 0.9354838709677421,
+    "false_alarm_on_neutral": 0.4117647058823529,
+    "recall": {
+     "neutral": 0.5882352941176471,
+     "angry": 0.85,
+     "fearful": 0.8,
+     "sad": 0.6842105263157895
+    }
+   }
+  },
+  "polish": {
+   "clean": {
+    "clips": 80,
+    "answered": 68,
+    "abstain_rate": 0.15,
+    "accuracy": 0.6470588235294118,
+    "macro_recall": 0.6394640092879257,
+    "attention_precision": 0.9130434782608695,
+    "attention_recall": 0.8571428571428571,
+    "attention_f1": 0.8842105263157894,
+    "false_alarm_on_neutral": 0.21052631578947367,
+    "recall": {
+     "neutral": 0.7894736842105263,
+     "angry": 0.7058823529411765,
+     "fearful": 0.375,
+     "sad": 0.6875
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 64,
+    "abstain_rate": 0.2,
+    "accuracy": 0.46875,
+    "macro_recall": 0.4709617180205415,
+    "attention_precision": 0.925,
+    "attention_recall": 0.7872340425531915,
+    "attention_f1": 0.8505747126436781,
+    "false_alarm_on_neutral": 0.17647058823529413,
+    "recall": {
+     "neutral": 0.8235294117647058,
+     "angry": 0.2222222222222222,
+     "fearful": 0.26666666666666666,
+     "sad": 0.5714285714285714
+    }
+   }
+  },
+  "russian": {
+   "clean": {
+    "clips": 80,
+    "answered": 77,
+    "abstain_rate": 0.0375,
+    "accuracy": 0.8311688311688312,
+    "macro_recall": 0.8305555555555555,
+    "attention_precision": 0.921875,
+    "attention_recall": 1.0,
+    "attention_f1": 0.959349593495935,
+    "false_alarm_on_neutral": 0.2777777777777778,
+    "recall": {
+     "neutral": 0.7222222222222222,
+     "angry": 0.85,
+     "fearful": 1.0,
+     "sad": 0.75
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 60,
+    "abstain_rate": 0.25,
+    "accuracy": 0.5,
+    "macro_recall": 0.49357015533486126,
+    "attention_precision": 0.8775510204081632,
+    "attention_recall": 0.9347826086956522,
+    "attention_f1": 0.9052631578947369,
+    "false_alarm_on_neutral": 0.42857142857142855,
+    "recall": {
+     "neutral": 0.5714285714285714,
+     "angry": 0.3333333333333333,
+     "fearful": 0.36363636363636365,
+     "sad": 0.7058823529411765
+    }
+   }
+  },
+  "spanish": {
+   "clean": {
+    "clips": 80,
+    "answered": 75,
+    "abstain_rate": 0.0625,
+    "accuracy": 0.52,
+    "macro_recall": 0.4939144736842105,
+    "attention_precision": 0.7972972972972973,
+    "attention_recall": 1.0,
+    "attention_f1": 0.8872180451127819,
+    "false_alarm_on_neutral": 0.9375,
+    "recall": {
+     "neutral": 0.0625,
+     "angry": 0.85,
+     "fearful": 0.8,
+     "sad": 0.2631578947368421
+    }
+   },
+   "phone": {
+    "clips": 80,
+    "answered": 59,
+    "abstain_rate": 0.2625,
+    "accuracy": 0.5254237288135594,
+    "macro_recall": 0.5276610644257702,
+    "attention_precision": 0.9019607843137255,
+    "attention_recall": 0.9387755102040817,
+    "attention_f1": 0.92,
+    "false_alarm_on_neutral": 0.5,
+    "recall": {
+     "neutral": 0.5,
+     "angry": 0.3333333333333333,
+     "fearful": 0.7058823529411765,
+     "sad": 0.5714285714285714
+    }
+   }
+  }
+ },
+ "confusion": {
+  "neutral": {
+   "neutral": 101,
+   "sad": 9,
+   "uncertain/abstain": 9,
+   "fearful": 9,
+   "angry": 12
+  },
+  "angry": {
+   "angry": 116,
+   "fearful": 19,
+   "uncertain/abstain": 4,
+   "neutral": 1
+  },
+  "fearful": {
+   "fearful": 99,
+   "sad": 8,
+   "angry": 5,
+   "neutral": 3,
+   "uncertain/abstain": 5
+  },
+  "sad": {
+   "fearful": 26,
+   "sad": 97,
+   "uncertain/abstain": 9,
+   "angry": 5,
+   "neutral": 3
+  }
+ },
+ "calibration_table": [
+  {
+   "bin": "0.3-0.4",
+   "n": 11,
+   "confidence": 0.37474545454545455,
+   "accuracy": 0.2727272727272727
+  },
+  {
+   "bin": "0.4-0.5",
+   "n": 22,
+   "confidence": 0.45150000000000007,
+   "accuracy": 0.45454545454545453
+  },
+  {
+   "bin": "0.5-0.6",
+   "n": 51,
+   "confidence": 0.5515392156862745,
+   "accuracy": 0.5294117647058824
+  },
+  {
+   "bin": "0.6-0.7",
+   "n": 71,
+   "confidence": 0.6438859154929577,
+   "accuracy": 0.6901408450704225
+  },
+  {
+   "bin": "0.7-0.8",
+   "n": 111,
+   "confidence": 0.749769369369369,
+   "accuracy": 0.7927927927927928
+  },
+  {
+   "bin": "0.8-0.9",
+   "n": 80,
+   "confidence": 0.8480150000000002,
+   "accuracy": 0.8125
+  },
+  {
+   "bin": "0.9-1.0",
+   "n": 188,
+   "confidence": 0.9692271276595746,
+   "accuracy": 0.9414893617021277
+  }
+ ],
+ "fairness": {},
+ "indicator_auc": {
+  "clean": {
+   "fear_vs_rest": 0.9240153892882454,
+   "anger_vs_rest": 0.9619706766232584,
+   "distress_fear_sad_vs_neutral": 0.9432633053221289,
+   "attention_any_vs_neutral": 0.9213651196519217
+  },
+  "phone": {
+   "fear_vs_rest": 0.8281885911264317,
+   "anger_vs_rest": 0.8780444964871195,
+   "distress_fear_sad_vs_neutral": 0.9176864801864802,
+   "attention_any_vs_neutral": 0.9258629071463297
+  }
+ },
+ "latency_ms": {
+  "median": 412.5,
+  "p95": 975.3,
+  "mean": 1378.8234082396998
+ }
+}

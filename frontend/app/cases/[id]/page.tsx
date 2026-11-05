@@ -9,7 +9,7 @@ import { CallAudio, type PlayerHandle } from "@/components/CallAudio";
 import { TopBar } from "@/components/Shell";
 import { Empty, ErrorNote, KV, n, Panel, PriorityBadge, SourceNote, StatusTag, Tag } from "@/components/ui";
 import { api } from "@/lib/api";
-import { inr, MODE_LABEL, SPEAKER_LABEL, ts } from "@/lib/format";
+import { inr, languageName, MODE_LABEL, SPEAKER_LABEL, ts } from "@/lib/format";
 import { startLive, type LiveHandle } from "@/lib/live";
 import type { VoiceAuth, CaseDetail, CaseField, Evidence, Health, LinkT, SegmentT } from "@/lib/types";
 
@@ -119,7 +119,7 @@ function Workspace() {
           <span className="text-fg-2">{c.caller_label}</span>
           <span className="text-fg-2">{c.district || "District not set"}</span>
           <span className="text-fg-2">{c.playbook.label}</span>
-          {c.language && <span className="uppercase text-fg-3">{c.language}</span>}
+          {c.language && <span className="text-fg-3" title={`Language code: ${c.language}`}>{languageName(c.language)}</span>}
           {c.voice_auth && VA_TONE[c.voice_auth.verdict] && <Tag tone={VA_TONE[c.voice_auth.verdict]} title={VA_LABEL[c.voice_auth.verdict]}>{VA_SHORT[c.voice_auth.verdict]}</Tag>}
           {c.identity_protected && <Tag tone="warn" title="Informant identity is visible only to the intake officer and supervisors">Identity protected</Tag>}
         </div>

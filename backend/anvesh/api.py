@@ -175,6 +175,8 @@ class CaseIn(BaseModel):
     district: str | None = PField(default=None, max_length=80)
     call_started_at: datetime | None = None
     synthetic: bool = False
+    # caller's language if the officer knows it ("auto" or empty = detect); ISO / IndicConformer code
+    language: str | None = PField(default=None, pattern="^(auto|[a-z]{2,3})$")
 
 
 class CasePatch(BaseModel):
@@ -457,6 +459,7 @@ def create_case(body: CaseIn, db: Session = Depends(db_session), p: Principal = 
     training = body.synthetic and p.can("link:review")  # only supervisors may create training scenarios
     case = Case(id=f"AV-{year}-{n:05d}", mode=body.mode, channel=body.channel, caller_label=body.caller_label,
                 district=body.district, synthetic=training, created_by=p.username,
+                language=None if body.language in (None, "", "auto") else body.language,
                 call_started_at=(body.call_started_at or now).replace(tzinfo=None))
     while pipeline.get_case(db, case.id):
         n += 1
@@ -542,7 +545,8 @@ async def upload_recording(case_id: Annotated[str, CaseId], file: UploadFile = F
     except Exception:
         raise HTTPException(422, "Could not decode this file as audio") from None
     model = M.best_asr()
-    res = await asyncio.to_thread(pipeline.transcribe_and_analyse, x, case.mode, kind, offset, True, True, "", model)
+    res = await asyncio.to_thread(pipeline.transcribe_and_analyse, x, case.mode, kind, offset, True, True, "", model,
+                                  case.language)
     rec = pipeline.ingest_audio(db, case, data, _safe_filename(file.filename), file.content_type, kind, who, offset,
                                 precomputed=res)
     refine_later = model is M.asr and M.asr_final.enabled
@@ -797,6 +801,7 @@ async def live(ws: WebSocket, case_id: str):
             return
         start_offset = max((s.end for s in c0.segments), default=0.0)
         mode = c0.mode
+        call_lang = {"v": c0.language}  # set at intake, or detected on the first chunk and then kept for the call
     if st.state == "ready":
         await ws.send_json({"type": "status", "message": "Listening", "stage": "listening"})
 
@@ -847,7 +852,8 @@ async def live(ws: WebSocket, case_id: str):
                 await send({"type": "status", "stage": "transcribing", "message": "Transcribing…",
                             "backlog": asr_q.qsize()})
                 res = (await asyncio.to_thread(pipeline.transcribe_and_analyse, x, mode, "call", t0, True, False,
-                                               " ".join(prev_text[-3:]))) if len(x) >= A.SR // 2 else {"segments": [], "language": None}
+                                               " ".join(prev_text[-3:]), None, call_lang["v"])
+                       ) if len(x) >= A.SR // 2 else {"segments": [], "language": None}
                 took = time.monotonic() - started
                 stats["chunks"] += 1
                 stats["empty"] += not res["segments"]
@@ -859,6 +865,8 @@ async def live(ws: WebSocket, case_id: str):
                     if res["segments"]:
                         pipeline.add_segments(db, case, res["segments"])
                     case.language = case.language or res.get("language")
+                    if res["segments"]:
+                        call_lang["v"] = case.language
                     if pending_windows:
                         case.windows = list(case.windows or []) + pending_windows
                         pending_windows.clear()

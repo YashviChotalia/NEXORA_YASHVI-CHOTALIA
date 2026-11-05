@@ -56,11 +56,12 @@ def add_segments(db: Session, case: Case, items: list[dict], recording_id: str |
 
 def transcribe_and_analyse(x: np.ndarray, mode: str, kind: str, offset: float = 0.0,
                            transcribe: bool = True, analyse: bool = True, previous_text: str = "",
-                           model: "M.ASR | None" = None) -> dict:
+                           model: "M.ASR | None" = None, language: str | None = None) -> dict:
     """All slow model work, done WITHOUT holding a database transaction."""
     out: dict = {"segments": [], "language": None, "windows": [], "embedding": None}
     if transcribe:
-        segs, lang = (model or M.asr).transcribe(x, offset=offset, previous_text=previous_text)
+        segs, lang = (model or M.asr).transcribe(x, offset=offset, previous_text=previous_text,
+                                                 language=language if language not in (None, "", "auto") else None)
         speaker = "suspect" if kind == "suspect_audio" else None
         for s in segs:
             s["language"] = lang
@@ -333,10 +334,10 @@ def refine_recording(case_id: str, rec_id: str, actor: str = "system") -> None:
         case.processing = f"Refining transcript with {model.model_id}…"
         db.commit()
         data = storage.load(rec.stored_path)
-        offset, kind, mode = rec.offset or 0.0, rec.kind, case.mode
+        offset, kind, mode, lang = rec.offset or 0.0, rec.kind, case.mode, case.language
     try:
         x = A.decode(data)
-        res = transcribe_and_analyse(x, mode, kind, offset, model=model)
+        res = transcribe_and_analyse(x, mode, kind, offset, model=model, language=lang)
     except Exception as e:  # pragma: no cover - model failure keeps the live draft
         log.warning("refine failed: %s", e)
         with SessionLocal() as db:

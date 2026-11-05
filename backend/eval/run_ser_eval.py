@@ -386,6 +386,25 @@ def report(results: dict[str, list[dict]], role: str, model_id: str) -> tuple[st
                      f"| {f2(g['attention_recall'])} |")
         L.append("")
 
+    langs = sorted({r["lang"] for rows in results.values() for r in rows})
+    if len(langs) > 1:
+        L += ["## 1b. Per language\n",
+              "Accuracy (answered) · attention recall · false alarms on neutral, live setting. Few speakers per language "
+              "in some sets: read as a direction, not a precise figure.\n",
+              "| Language | Speakers | Clips | " + " | ".join(CONDITION_LABEL.get(c, c) for c in results) + " |",
+              "|---|---|---|" + "---|" * len(results)]
+        data["per_language"] = {}
+        for lg in langs:
+            cells, n, spk = [], 0, set()
+            for c, rows in results.items():
+                rs = [r for r in rows if r["lang"] == lg]
+                n, spk = len(rs), {r["speaker"] for r in rs}
+                m = metrics(rs, role)
+                data["per_language"].setdefault(lg, {})[c] = m
+                cells.append(f"{pct(m['accuracy'])} · {f2(m['attention_recall'])} · {pct(m['false_alarm_on_neutral'])}")
+            L.append(f"| {lg} | {len(spk)} | {n} | " + " | ".join(cells) + " |")
+        L.append("")
+
     first = next(iter(results))
     base = results[first]
     L += [f"## 2. Per class ({CONDITION_LABEL.get(first, first)})\n",
@@ -476,12 +495,17 @@ def main(argv=None) -> int:
     ap.add_argument("--role", default="victim", choices=["none", "victim"],
                     help="'victim' = the helpline prior used on victim calls (default); 'none' = raw model output")
     ap.add_argument("--from-cache", action="store_true", help="re-summarise saved predictions, no model needed")
+    ap.add_argument("--exclude-lang", default="", help="comma list of languages to leave out (e.g. english)")
+    ap.add_argument("--out-dir", default="", help="write results here instead of eval/results")
     ap.add_argument("--holdout", action="store_true",
                     help=f"CREMA-D: only test speakers never used to train the head ({HOLDOUT})")
     ap.add_argument("--system", default="auto", choices=["auto", "raw", "head"],
                     help="what sections 1-6 describe: the head when it is available (auto), or the raw model")
     args = ap.parse_args(argv)
     conds = [c.strip() for c in args.conditions.split(",") if c.strip()]
+    global OUT_DIR
+    if args.out_dir:
+        OUT_DIR = Path(args.out_dir)
     bad = [c for c in conds if c not in CONDITIONS]
     if bad:
         ap.error(f"unknown condition(s): {bad}")
@@ -503,6 +527,8 @@ def main(argv=None) -> int:
         if not (args.crema_d or args.manifest):
             ap.error("give --crema-d and/or --manifest (or --from-cache)")
         items = load_items(args)
+        skip = {x.strip().lower() for x in args.exclude_lang.split(",") if x.strip()}
+        items = [it for it in items if it["lang"].lower() not in skip]
         if not items:
             print("No labelled clips found.")
             return 1

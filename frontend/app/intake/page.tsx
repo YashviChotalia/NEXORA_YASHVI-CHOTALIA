@@ -6,6 +6,7 @@ import { useState } from "react";
 import { TopBar } from "@/components/Shell";
 import { ErrorNote } from "@/components/ui";
 import { api } from "@/lib/api";
+import { LANGUAGES } from "@/lib/format";
 import type { CaseDetail, Mode } from "@/lib/types";
 
 const MODES: { key: Mode; title: string; desc: string; channel: string; runs: string; off: string }[] = [
@@ -34,6 +35,7 @@ export default function Intake() {
   const [mode, setMode] = useState<Mode>("victim");
   const [caller, setCaller] = useState("");
   const [district, setDistrict] = useState("");
+  const [language, setLanguage] = useState("auto");
   const [start, setStart] = useState<"live" | "upload" | "text">("live");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function Intake() {
     setBusy(true); setErr(null);
     try {
       const c = await api.post<CaseDetail>("/api/cases", {
-        mode, channel: m.channel, district: district.trim() || null,
+        mode, channel: m.channel, district: district.trim() || null, language,
         caller_label: caller.trim() || (mode === "suspect_recording" ? "Recording shared by complainant" : "Unnamed caller"),
       });
       router.push(`/cases/${c.id}?start=${start}`);
@@ -85,6 +87,13 @@ export default function Intake() {
             <label className="block">
               <span className="label">District</span>
               <input className="input mt-1" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="e.g. Pune" />
+            </label>
+            <label className="block">
+              <span className="label">Caller&apos;s language</span>
+              <select className="input mt-1" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                {LANGUAGES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+              </select>
+              <span className="mt-1 block text-xs2 text-fg-3">22 Indian languages, English and others. Leave on detect if unsure; the first seconds decide.</span>
             </label>
             <div className="sm:col-span-2">
               <span className="label block">Input</span>

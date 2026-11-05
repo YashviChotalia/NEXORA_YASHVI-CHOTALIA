@@ -30,8 +30,17 @@ class Settings:
     # "hi" transcribes Hindi/Hinglish faithfully (Devanagari, then transliterated to Roman Hinglish);
     # "en" makes Whisper TRANSLATE Hindi into English, so wording is lost;
     # "auto" detects but only among ANVESH_ASR_LANGS (prevents mislabels such as 'jw').
-    asr_language: str = os.getenv("ANVESH_ASR_LANGUAGE", "hi")
-    asr_languages: tuple[str, ...] = tuple(os.getenv("ANVESH_ASR_LANGS", "hi,en").split(","))
+    # "auto" (default) detects the caller's language once per call among ANVESH_ASR_LANGS and keeps it; the officer
+    # can also set it at intake. Indian languages other than Hindi go to IndicConformer (speech/indic_asr.py).
+    asr_language: str = os.getenv("ANVESH_ASR_LANGUAGE", "auto")
+    asr_languages: tuple[str, ...] = tuple(os.getenv(
+        "ANVESH_ASR_LANGS", "hi,en,bn,ta,te,mr,gu,kn,ml,pa,ur,as,ne,sa,sd,fr,de,es,ru,ar,zh").split(","))
+    # Spoken Hindi and Urdu are close; Hinglish callers are often detected as Urdu. Treat Urdu as Hindi unless off.
+    asr_urdu_as_hindi: bool = _bool("ANVESH_ASR_URDU_AS_HINDI", True)
+    enable_indic_asr: bool = _bool("ANVESH_ENABLE_INDIC_ASR", True)
+    indic_asr_dir: str = os.getenv("ANVESH_INDIC_ASR_DIR", "")
+    # Hindi stays on Whisper by default: the Hinglish layer (Roman script, English loanwords) is built around it
+    indic_asr_for_hindi: bool = _bool("ANVESH_INDIC_ASR_HINDI", False)
     asr_report_language: str = os.getenv("ANVESH_ASR_REPORT_LANGUAGE", "")
     # accurate model used after a live call ends and for uploads (re-transcribes the full recording)
     asr_final_model: str = os.getenv("ANVESH_ASR_FINAL_MODEL", "large-v3-turbo")

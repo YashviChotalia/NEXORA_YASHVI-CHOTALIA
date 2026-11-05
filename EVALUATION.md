@@ -283,8 +283,8 @@ scored with the same 3-second windows as live calls.
 
 - Collect consented, anonymised helpline-style recordings with a partner cyber cell to build a real Hinglish test
   set.
-- Retrain the telephone head on licensed Indian-language emotional speech (for example AI4Bharat Rasa, Hindi,
-  CC-BY-4.0, already supported by `eval/get_eval_audio.py --rasa`) and report per-language results.
+- Retrain the telephone head on Indian-language emotional speech (for example AI4Bharat Rasa: Assamese, Bengali and
+  Tamil, CC-BY-4.0) and report per-language results, including languages held out from training.
 - Evaluate on real network codecs (AMR-NB, Opus over VoIP) in addition to G.711.
 - Measure end-to-end extraction accuracy on audio (speech-to-text → fields) and the time saved per intake against a
   manual form.

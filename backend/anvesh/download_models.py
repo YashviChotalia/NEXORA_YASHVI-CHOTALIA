@@ -24,6 +24,7 @@ ALL = {
     "emotion": M.emotion,         # voice emotion (emotion2vec+, ANVESH_EMOTION_MODEL)
     "speaker": M.speaker,         # speaker embeddings for suspect recordings (SpeechBrain ECAPA)
     "spoof": M.spoof,             # synthetic-voice detector (ANVESH_SPOOF_MODEL)
+    "indic": M.indic,             # 22 Indian languages (AI4Bharat IndicConformer; gated: accept terms + log in)
 }
 
 

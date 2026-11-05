@@ -18,7 +18,7 @@ PS: Real-Time Speech Emotion Analysis for Cybercrime Investigation*
 
 **Designed and developed by [Yashvi Chotalia](https://github.com/YashviChotalia)**
 
-[Demo video](#demo) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Evaluation](EVALUATION.md) · [Security](SECURITY.md)
+[Live demo](#demo) · [Demo video](#demo) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Evaluation](EVALUATION.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -42,10 +42,12 @@ account. Emotion is always an **indicative signal for a human**, never evidence 
 
 ## Demo
 
-> **2-minute demo video:** *add the link here before submission*
+> **Live app:** *Hugging Face Space link goes here*
+> **2-minute demo video:** *video link goes here*
 
-The video shows the backend and frontend running locally, as the hackathon guidelines allow. Every screen in this
-README is the real app running on the bundled training scenarios (`python -m anvesh.seed`).
+The live app runs the full stack (speech models included) in one container on free CPU hardware, so the first live
+call after a cold start can take a minute while the models load. Sign-in details for judges are in the submission
+form. Every screen in this README is the real app running on the bundled training scenarios (`python -m anvesh.seed`).
 
 ---
 
@@ -264,8 +266,14 @@ npm run dev                            # http://localhost:3000
 
 - **Docker** (backend, frontend and PostgreSQL):
   `ANVESH_DATA_KEY=$(python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())") docker compose up --build`
+- **Hosted demo (Hugging Face Space, free):** `deploy_space.bat --space <hf-user>/anvesh --admin judge.admin`
+  (or `python scripts/deploy_space.py ...`). It builds one container from `deploy/huggingface/`: nginx on port 7860
+  in front of the Next.js app and the API, so the app, API and live-call WebSocket share one origin and the
+  `SameSite=Strict` session cookie keeps working. The administrator is created from Space secrets, because first-run
+  setup is refused for anyone not on the server itself. Open the app at `https://<hf-user>-anvesh.hf.space`.
 - **Frontend only on Vercel:** import the repository, set *Root Directory* to `frontend` and set
-  `NEXT_PUBLIC_API_URL` to the backend address. The landing page `/welcome` needs no backend.
+  `NEXT_PUBLIC_API_URL` to the backend address. The landing page `/welcome` needs no backend; sign-in needs the API
+  on the same site (the session cookie is `SameSite=Strict`), so use the Space above for a full hosted demo.
 
 ### Configuration
 
@@ -285,6 +293,8 @@ All settings are optional environment variables.
 | `ANVESH_SESSION_IDLE_MIN` / `ANVESH_SESSION_MAX_HOURS` | `30` / `12` | session idle timeout and maximum lifetime |
 | `ANVESH_RETENTION_DAYS` | `0` (keep) | erase closed cases older than this at start-up |
 | `ANVESH_MAX_UPLOAD_MB` | `100` | largest audio upload accepted |
+| `ANVESH_BOOTSTRAP_ADMIN` / `ANVESH_BOOTSTRAP_PASSWORD` | *(empty)* | hosted deployments: create the first administrator at start-up when no account exists (password change forced at first sign-in) |
+| `NEXT_PUBLIC_API_URL` (frontend, build time) | `http://localhost:8000` | API address; empty = same origin as the app |
 
 ### Troubleshooting
 

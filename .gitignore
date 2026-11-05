@@ -16,3 +16,4 @@ logs/
 .venv/
 venv/
 !backend/anvesh/data/
+backend/eval/audio/

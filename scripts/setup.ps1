@@ -42,6 +42,11 @@ if ($ml -ne 0) { Log "WARNING: speech-model install failed; the app runs without
 Run "backend tests" $vpy @("-m", "pytest", "-q") | Out-Null
 Run "load training scenarios" $vpy @("-m", "anvesh.seed", "--reset") | Out-Null
 Run "check speech model imports" $vpy @("-c", "import faster_whisper; print('faster-whisper OK')") | Out-Null
+if ($ml -eq 0) {
+  $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
+  $dl = Run "download speech models (first run only, several GB)" $vpy @("-m", "anvesh.download_models")
+  if ($dl -ne 0) { Log "WARNING: some models did not download; they will retry when the backend starts." }
+}
 
 # 5) Frontend
 $Frontend = Join-Path $Root "frontend"

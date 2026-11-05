@@ -1,176 +1,355 @@
-# Anvesh — every call solves more than one case
+<div align="center">
 
-**Anvesh** (Sanskrit/Hindi: *search, investigation*) turns a cybercrime victim's phone call into an
-**evidence-linked case file in minutes**, then links it to earlier complaints so one call can
-surface a whole **fraud ring**. It is built for Indian cyber cells and fraud teams: Hinglish speech,
-UPI-era fraud, and the golden hour after money leaves an account.
+# Anvesh
 
-> Built for the VecnaVerse National Level Hackathon · PS: *Real-Time Speech Emotion Analysis for
-> Cybercrime Investigation* (Cybersecurity).
->
-> **Designed and developed by [Yashvi Chotalia](https://github.com/YashviChotalia).**
+### Real-time speech emotion analysis for cybercrime calls, built into the investigation workflow
 
-**Landing page:** `/welcome` is a scroll-driven short film that shows the problem: a "digital arrest" call, a
-voice-changed caller, the account emptied in 47 seconds, then *Introducing Anvesh*. It has graded footage, Hinglish
-subtitles and a soundtrack, and the visuals pulse on the music's beat.
+**Every call solves more than one case.**
 
-![Command centre](docs/screenshots/home.png)
+![Python](https://img.shields.io/badge/Python-3.10–3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-frontend-000000?logo=nextdotjs&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-105%20passing-2ea44f)
+![Runs offline](https://img.shields.io/badge/runs-fully%20on%20a%20laptop-orange)
 
-| Case workspace | Ring Linker |
-|---|---|
-| ![Case workspace](docs/screenshots/cases_AV-2026-D0001.png) | ![Ring Linker](docs/screenshots/rings.png) |
+*Built for the VecnaVerse National Level Hackathon · Domain: Cybersecurity ·
+PS: Real-Time Speech Emotion Analysis for Cybercrime Investigation*
 
-*Screens show official NCRB / I4C / DoT statistics (National data, Official context) and the labelled training scenarios from `python -m anvesh.seed`.*
+**Designed and developed by [Yashvi Chotalia](https://github.com/YashviChotalia)**
+
+[Demo video](#demo) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Evaluation](EVALUATION.md) · [Security](SECURITY.md)
+
+</div>
 
 ---
 
-## What makes it different
+**Anvesh** (Sanskrit/Hindi: *search, investigation*) listens to a cybercrime call, live or recorded, and gives the
+officer three things at once:
+
+1. **Real-time emotion signals.** Fear, anger, distress and nervousness, measured against the caller's own voice and
+   shown only when the signal is sustained and the audio is good enough. When unsure, it abstains.
+2. **An evidence-linked case file.** Amount, time, UPI ID, bank, phone number and scam type, each linked to the exact
+   second of audio it came from.
+3. **Links to earlier cases.** Shared identifiers and similar scam scripts connect one call to a whole **fraud ring**.
+
+It is built for Indian cyber cells: Hinglish speech, UPI-era fraud, and the golden hour after money leaves an
+account. Emotion is always an **indicative signal for a human**, never evidence of intent, honesty or guilt.
+
+![Case queue: calls ranked by urgency, with safety alerts and linked groups](docs/screenshots/home.png)
+
+---
+
+## Demo
+
+> **2-minute demo video:** *add the link here before submission*
+
+The video shows the backend and frontend running locally, as the hackathon guidelines allow. Every screen in this
+README is the real app running on the bundled training scenarios (`python -m anvesh.seed`).
+
+---
+
+## The problem
+
+Cybercrime helplines take calls from distressed victims, informants and recordings of suspected fraudsters. During a
+call, an officer has to judge urgency, calm the caller and write down UPI IDs, amounts and phone numbers, often while
+handling other cases. Signs of fear or ongoing coercion are easy to miss, and details spoken in Hinglish
+("dedh lakh", "at the rate ybl") are easy to mistype. India recorded **86,420 cyber crimes in 2023**
+(NCRB, +31.2%) and **24 lakh fraud complaints in 2025** (I4C); Anvesh shows these official figures in the app,
+with their sources.
+
+## What Anvesh does
 
 | | Typical SER demo | Anvesh |
 |---|---|---|
-| Output | An emotion label | A case file: amount, time, UPI ID, bank, phone, UTR, scam type, each linked to the exact second of audio |
-| Scope | One call | **Ring Linker** connects cases by identifier, scam script and (for suspect recordings) caller voice |
-| Roles | Everyone treated the same | Operator-confirmed **victim / suspect-recording / informant** modes; emotion scoring is **off for suspects** |
-| Urgency | "Fear 0.81" | Golden-hour triage from **reported facts**; distress is a separate human-safety track |
-| Trust | Black box | Abstains when unsure, shows evidence, hash-chained audit log, officer verify/correct on every field |
+| Output | One emotion label | Fear / anger / distress / nervousness over time, plus a case file with every detail linked to the audio |
+| Accuracy safeguards | Always gives an answer | Smoothed over windows, compared with the caller's own baseline, **abstains** on poor audio or low confidence |
+| Roles | Everyone treated the same | Operator-confirmed **victim / suspect recording / informant** modes; emotion scoring is **off for suspects** |
+| Urgency | "Fear 0.81" | Priority from **reported facts**; distress is a separate human-safety track that never changes financial priority |
+| Scope | One call | **Ring Linker** connects cases by identifier, scam script and (for suspect recordings) voice |
+| Trust | Black box | Evidence for every output, officer verify/correct on every field, encrypted data, hash-chained audit log |
 
-### Signature features
+### Features
 
-1. **Call → case file.** Hinglish normaliser ("saadhe paanch hazaar" → ₹5,500, "ramesh at the rate okaxis" →
-   `ramesh@okaxis`, "nau aath saat…" → `987…`, "aadha ghanta pehle" → a clock time) feeds an extractor that keeps a
-   character-and-time pointer back to the words it came from.
-2. **Ring Linker.** Exact identifier matches, multilingual script similarity, and speaker-embedding voice leads on
-   suspect recordings. Every link is a scored lead that an officer confirms or rejects.
-3. **Interview co-pilot.** Next questions from missing fields plus a scam-type playbook (digital arrest, investment,
-   KYC, courier, sextortion, job, utility).
-4. **Read-back confirmation.** Reads the captured facts back to the caller in Hindi for a yes or a correction.
-5. **Coercion and crisis alerts.** Phrases like "kisi ko mat batana" / "abhi bhi video call pe hain" raise a
-   possible-active-coercion alert; crisis language triggers a hand-over prompt (Tele-MANAS 14416).
-6. **Distress track.** emotion2vec voice emotion + pitch/energy/pace change against the caller's own baseline,
-   sustained (not single-spike), role-gated, and **abstains** on poor audio or unvalidated languages.
-7. **Synthetic-voice check.** A deepfake-audio classifier plus acoustic cues (jitter, shimmer, noise floor, rhythm)
-   separate a live human voice from a cloned or replayed one, so a real victim, a real informant and a staged
-   "victim" can be told apart. Shown as *likely real / needs verification / likely synthetic*, never as proof.
-8. **Live call mode.** Microphone audio streams over a WebSocket; transcript, emotion and distress update every few
-   seconds, and a complainant is never shown as "happy".
-9. **Tamper-evident audit.** SHA-256 of every recording, encrypted evidence at rest, hash-chained events for every
-   view, AI output and human correction, and a one-click chain verification.
+**Speech emotion (the core of the PS)**
 
----
+- **Live call mode.** Microphone audio streams over a WebSocket. Transcript, emotion and distress update every few
+  seconds.
+- **Four signals.** emotion2vec+ voice emotion on overlapping 3-second windows, combined with pitch, loudness and
+  speaking-rate change against the caller's own baseline, mapped to **fear, anger, distress and nervousness**.
+- **Built for helpline audio.** Readings are smoothed so one noisy window cannot flip them. Low-confidence windows
+  show as *uncertain*. A complainant is never shown as "happy" (nervous laughter on a tense call is read as nervousness).
+- **Distress track.** Sustained distress (not single spikes), role-gated, and abstains on poor audio or languages
+  that have not been validated.
+- **Coercion and crisis alerts.** Phrases like *"kisi ko mat batana"* or *"abhi bhi video call pe hain"* raise a
+  possible-active-coercion alert. Crisis language prompts a hand-over to Tele-MANAS (14416).
 
-## Architecture
+**Investigation support**
 
-```
-Next.js workspace ──► FastAPI (REST + WebSocket live audio)
-                        ├─ speech: faster-whisper ASR · emotion2vec · ECAPA speaker embeddings · deepfake-audio check
-                        ├─ nlp: Hinglish normaliser → extractor (+evidence) → playbooks/co-pilot → safety signals
-                        ├─ triage: transparent rules on reported facts      ├─ distress: role-gated, abstaining
-                        ├─ linker: identifiers · script similarity · voice leads → rings
-                        └─ audit + storage: HMAC hash chain · AES-256-GCM encrypted fields and evidence
-                     SQLite (dev) / PostgreSQL (compose)
-```
-
-Modular monolith with clear module boundaries; models load lazily and `/api/health` reports exactly what is loaded.
-A missing model is reported, never simulated.
+- **Call → case file.** A Hinglish normaliser (*"saadhe paanch hazaar"* → ₹5,500, *"ramesh at the rate okaxis"* →
+  `ramesh@okaxis`, *"aadha ghanta pehle"* → a clock time) feeds an extractor that keeps a pointer back to the exact
+  words and second of audio.
+- **Interview co-pilot.** Suggests the next questions from missing details and a scam-type playbook (digital arrest,
+  investment, KYC, courier, sextortion, job, utility).
+- **Read-back.** Reads the captured facts back to the caller in Hindi for confirmation.
+- **Ring Linker.** Exact identifier matches, multilingual script similarity and voice leads on suspect recordings.
+  Every link is a lead an officer confirms or rejects.
+- **Synthetic-voice check.** A deepfake-audio classifier plus acoustic cues (jitter, shimmer, noise floor, rhythm)
+  flag cloned or replayed audio as *likely real / needs verification / likely synthetic*, never as proof.
+- **Official context.** NCRB, I4C and DoT statistics from data.gov.in, verified by SHA-256 at start-up.
+- **Tamper-evident audit.** Every view, AI output and human correction goes into an HMAC-signed hash chain, with
+  one-click verification.
 
 ---
 
-## Quick start (laptop)
+## Screenshots
 
-**Windows, one click:** double-click `setup.bat` once (installs everything, runs the tests, loads demo data),
-then `start.bat` to launch. Logs go to `logs\` (`setup.log`, `backend.log`, `frontend.log`).
+| Case workspace: live coercion alert and urgency assessment | Case details: every field linked to the second of audio |
+|---|---|
+| ![Case workspace](docs/screenshots/case-overview.png) | ![Case details](docs/screenshots/case-details.png) |
 
-**Manual setup**
+| Ring Linker: shared UPI IDs, phones and scripts connect complaints into rings | Linked cases on the case page |
+|---|---|
+| ![Ring Linker](docs/screenshots/rings.png) | ![Linked cases](docs/screenshots/case-linked.png) |
 
-**Backend** (Python 3.10–3.12)
+| New intake: role decides which analysis runs | Audit log: hash chain verified |
+|---|---|
+| ![New intake](docs/screenshots/intake.png) | ![Audit log](docs/screenshots/audit.png) |
+
+| Official context for each case | Landing page (`/welcome`) |
+|---|---|
+| ![Official context](docs/screenshots/case-official-context.png) | ![Landing page](docs/screenshots/welcome.jpg) |
+
+<details>
+<summary>National data page (full)</summary>
+
+![National data](docs/screenshots/national-data.png)
+
+</details>
+
+---
+
+## How it works
+
+```
+ Microphone / audio file
+          │  WebSocket (live, ~5 s chunks cut at pauses)  or  upload
+          ▼
+ FastAPI backend ───────────────────────────────────────────────────────────────┐
+ │ speech   faster-whisper ASR (Hindi/Hinglish → Roman script)                   │
+ │          emotion2vec+ voice emotion · acoustic baseline (pitch, energy, pace) │
+ │          ECAPA speaker embeddings (suspects only) · synthetic-voice detector  │
+ │ ser      3 s windows → smoothing → fear / anger / distress / nervousness      │
+ │          role gating · abstention on silence, noise or low confidence         │
+ │ nlp      Hinglish normaliser → extractor (with evidence) → playbooks          │
+ │          coercion / crisis phrase scanner                                     │
+ │ triage   transparent rules on reported facts (distress kept separate)        │
+ │ linker   identifiers (blind index) · script similarity · voice leads → rings  │
+ │ storage  AES-256-GCM fields · encrypted evidence · HMAC hash-chained audit    │
+ └──────────────────────────────────────────────────────────────────────────────┘
+          │  REST + WebSocket
+          ▼
+ Next.js workspace: case queue · live call · case file · Ring Linker · audit
+```
+
+- **Modular monolith.** Each module has a clear boundary; models load lazily in the background.
+- **Honest about models.** `/api/health` reports exactly which models are loaded. A missing model is reported in the
+  UI and the system abstains; nothing is ever simulated.
+- **Runs on a laptop.** Everything runs locally on CPU. No call audio leaves the machine.
+
+| Component | Model / library | Licence |
+|---|---|---|
+| Speech-to-text | faster-whisper `small` (live), `large-v3-turbo` (after the call) | MIT |
+| Voice emotion | emotion2vec+ base (`iic/emotion2vec_plus_base`) | see model card |
+| Speaker embeddings | SpeechBrain ECAPA-TDNN | Apache-2.0 |
+| Synthetic voice | `MelodyMachine/Deepfake-audio-detection-V2` | see model card |
+| App | FastAPI, SQLAlchemy, Next.js, React, Tailwind | MIT / BSD |
+
+Full licence notes are in [LICENSES.md](LICENSES.md).
+
+---
+
+## Quick start
+
+The backend runs the speech models, so it is meant to run **locally** (CPU is enough). Model weights are **not**
+stored in this repository; a script downloads them once.
+
+### Requirements
+
+| | Minimum |
+|---|---|
+| OS | Windows 10/11 (one-click scripts), or Linux/macOS (manual steps) |
+| Python | 3.10, 3.11 or 3.12 |
+| Node.js | 18 or newer (20 LTS recommended) |
+| RAM | 8 GB (16 GB recommended with all models loaded) |
+| Disk | about 6 GB free for packages and model weights |
+| Internet | needed once, to install packages and download models |
+
+### Option A: Windows, one click
+
+1. Double-click **`setup.bat`** (once). It creates the Python environment, installs everything, runs the tests,
+   **downloads the speech models**, loads the training scenarios and installs the frontend.
+   The first run takes 10–20 minutes, depending on your connection.
+2. Double-click **`start.bat`**. It starts the backend (port 8000) and frontend (port 3000), then opens
+   <http://localhost:3000>.
+
+Logs are written to `logs\setup.log`, `logs\backend.log` and `logs\frontend.log`.
+
+### Option B: manual setup (any OS)
+
+**1. Backend**
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt
-pip install -r requirements-ml.txt                         # speech models, installed separately (CPU is fine)
-python -m anvesh.seed --reset                              # training scenarios for the Ring Linker (--none for an empty DB)
+python -m venv .venv
+source .venv/bin/activate              # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt    # app, tests and tools
+pip install -r requirements-ml.txt     # speech models (CPU is fine)
+```
+
+**2. Download the speech models** (once, several GB)
+
+```bash
+python -m anvesh.download_models                       # all models
+python -m anvesh.download_models --only asr emotion    # or just some of them
+```
+
+Each model is reported as `ok` or `FAIL`. If a model fails, the app still runs: that signal is shown as unavailable
+and the system abstains. Models that are missing are also downloaded in the background when the backend starts.
+
+**3. Load the training scenarios and start the API**
+
+```bash
+python -m anvesh.seed --reset          # 72 labelled training scenarios (use --none for an empty database)
 uvicorn anvesh.api:app --port 8000
 ```
 
-**Frontend** (Node 18+)
+**4. Frontend** (in a second terminal)
 
 ```bash
 cd frontend
-cp .env.example .env.local
+cp .env.example .env.local             # Windows: copy .env.example .env.local
 npm install
-npm run dev                                                # http://localhost:3000
+npm run dev                            # http://localhost:3000
 ```
 
-**Deploy the web app on Vercel:** import the repository, set **Root Directory** to `frontend` (framework: Next.js),
-and set `NEXT_PUBLIC_API_URL` to wherever the FastAPI backend runs. The landing page at `/welcome` needs no backend.
+### First sign-in
 
-**Everything in containers:** `ANVESH_DATA_KEY=$(python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())") docker compose up --build`
+1. Open <http://localhost:3000> **on the same computer** that runs the backend.
+2. On first run you are asked to create the administrator account (name, username, password of 12+ characters).
+   For security, this is only allowed from the server computer.
+3. You are signed in as administrator and supervisor. Add officers later under **Users**.
+
+### Try it in two minutes
+
+1. Open the **Training** workspace (bottom left) and click **AV-2026-T0001**. You'll see the coercion alert, the
+   urgency assessment, and under **Details** each field with a ▶ link to the moment it was said.
+2. Open the **Linked** tab, then **Linked cases** in the sidebar, to see the fraud ring.
+3. Click **New intake** → *Victim report* → *Live microphone* → **Create case**, then **Start live** and speak in
+   Hindi, English or Hinglish. The transcript, the four emotion signals and the case details fill in as you talk.
+4. The sidebar's **System** panel shows which models are loaded.
+
+### Other ways to run
+
+- **Docker** (backend, frontend and PostgreSQL):
+  `ANVESH_DATA_KEY=$(python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())") docker compose up --build`
+- **Frontend only on Vercel:** import the repository, set *Root Directory* to `frontend` and set
+  `NEXT_PUBLIC_API_URL` to the backend address. The landing page `/welcome` needs no backend.
 
 ### Configuration
 
+All settings are optional environment variables.
+
 | Variable | Default | Meaning |
 |---|---|---|
-| `ANVESH_ASR_MODEL` | `small` | faster-whisper size (`base` for low-RAM laptops, `medium` for accuracy) |
-| `ANVESH_EMOTION_MODEL` | `iic/emotion2vec_plus_base` | voice-emotion checkpoint |
-| `ANVESH_ENABLE_SPEAKER` | `1` | ECAPA speaker embeddings for suspect recordings |
+| `ANVESH_ASR_MODEL` | `small` | live speech-to-text size (`base` for low-RAM laptops) |
+| `ANVESH_ASR_FINAL_MODEL` | `large-v3-turbo` | accurate re-transcription after a call |
+| `ANVESH_EMOTION_MODEL` | `iic/emotion2vec_plus_base` | voice emotion checkpoint |
+| `ANVESH_SPOOF_MODEL` | `MelodyMachine/Deepfake-audio-detection-V2` | synthetic-voice detector |
+| `ANVESH_ENABLE_ASR_FINAL` / `_EMOTION` / `_SPEAKER` / `_SPOOF` | `1` | turn individual models off (`0`) |
 | `ANVESH_TEXT_EMBEDDER` | *(empty)* | e.g. `paraphrase-multilingual-MiniLM-L12-v2` for cross-language script links |
-| `ANVESH_DATA_KEY` | dev key file | Fernet key for evidence encryption (**set this in any real deployment**) |
-| `ANVESH_MASTER_KEY` | *(generated in ~/.anvesh/keys)* | 32-byte base64 master key for field and evidence encryption (use a secret manager in production) |
-| `ANVESH_KEY_DIR` | `~/.anvesh/keys` | where the generated master key is kept (outside the data folder) |
+| `ANVESH_VALIDATED_LANGS` | `en,hi` | languages where the voice distress track may score |
+| `ANVESH_MASTER_KEY` | generated in `~/.anvesh/keys` | 32-byte base64 master key (use a secret manager in production) |
 | `ANVESH_SESSION_IDLE_MIN` / `ANVESH_SESSION_MAX_HOURS` | `30` / `12` | session idle timeout and maximum lifetime |
-| `ANVESH_RETENTION_DAYS` | `0` (keep) | erase closed cases older than this on start-up |
+| `ANVESH_RETENTION_DAYS` | `0` (keep) | erase closed cases older than this at start-up |
 | `ANVESH_MAX_UPLOAD_MB` | `100` | largest audio upload accepted |
-| `ANVESH_VALIDATED_LANGS` | `en,hi` | languages where the voice distress track is allowed to score |
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| A model shows *Error* in the System panel | Run `python -m anvesh.download_models` and check the output; see `logs\backend.log` |
+| Slow transcription on an older laptop | Set `ANVESH_ASR_MODEL=base` and `ANVESH_ENABLE_ASR_FINAL=0` |
+| Setup page says it is only allowed from the server | Open the app on the same computer as the backend, at `localhost` |
+| Port 8000 or 3000 already in use | `start.bat` frees them; otherwise stop the other program |
+| Encrypted data cannot be read after moving machines | Copy `~/.anvesh/keys/master.key` with the data (back it up separately) |
 
 ---
 
-## Quality
+## Testing and evaluation
 
 ```bash
-cd backend && pytest -q            # unit + API tests (no models needed)
-python eval/run_eval.py            # field-extraction evaluation, see EVALUATION.md
+cd backend
+pytest -q                                   # 105 unit and API tests (no models needed)
+python eval/run_eval.py                     # Hinglish field extraction: 38/38 on the development set
+python eval/run_ser_eval.py --crema-d PATH  # speech emotion on CREMA-D (needs the emotion model)
+python eval/run_ser_eval.py --manifest own_samples.csv   # your own / role-play / YouTube clips
 cd ../frontend && npm run typecheck && npm run build
 ```
 
-CI runs all of the above on every push.
+CI runs the tests, the extraction evaluation, linting, security scans and the frontend build on every push.
+The methodology, results and limitations are in **[EVALUATION.md](EVALUATION.md)**.
 
 ---
 
 ## Responsible use
 
 - Outputs are **indicative signals for human review**, never evidence of honesty, intent or guilt.
-- Emotion and voice-stress scoring are **disabled for suspects** by design; voice-similarity links are leads only.
-- Financial priority comes from reported facts with transparent rules; it does **not** predict recoverability.
-- Hashing shows files and logs were not altered after capture; it does not prove a recording is authentic,
-  complete or lawfully obtained.
-- **Official data, not invented numbers.** `backend/anvesh/data/official/` holds byte-identical copies of six files published on
-  data.gov.in (NCRB *Crime in India 2023* tables 9A.1, 9A.3, 9B.3; Rajya Sabha answers with I4C NCRP complaint data and DoT
-  Chakshu scam categories). `sources.json` records each file's page, report and SHA-256; Anvesh refuses to start the data
-  view if a hash or a published total does not match. Shown on **National data** and in each case's **Official context**.
-- **Calls are training scenarios.** No government body publishes victim calls (personal data and evidence), so the call
-  transcripts are scripted. Each one reproduces a scam category from the Chakshu data, in a district covered by NCRB data,
-  and is labelled *Training scenario* in the UI. Phone numbers and UPI handles are placeholders.
-- See [`LICENSES.md`](LICENSES.md) before any commercial use of models or datasets.
-
-## Roadmap
-
-Telephony integration for live 1930 calls · NCRP-format export · diarization fallback · fine-tuned
-classifier on commercially licensed data · per-language validation · campaign radar for emerging scam scripts ·
-multi-tenant deployment and DPDP compliance mapping.
+- Emotion and voice-stress scoring are **disabled for suspects** by design. Voice-similarity links are leads only.
+- Financial priority comes from reported facts with transparent rules and does **not** predict recoverability.
+- The system **abstains** when audio is poor, the model is unsure or the language has not been validated.
+- Every AI output can be verified or corrected by the officer, and every correction is logged.
+- **Official data, not invented numbers.** `backend/anvesh/data/official/` holds byte-identical copies of six
+  data.gov.in files (NCRB *Crime in India 2023* tables 9A.1, 9A.3, 9B.3; Rajya Sabha answers with I4C and DoT
+  Chakshu data). The app refuses to show them if a hash or published total does not match.
+- **Calls are training scenarios.** No government body publishes victim calls, so the bundled transcripts are
+  scripted, labelled *Training scenario* in the UI, and use placeholder numbers and UPI handles.
+- No call audio is used for training. See [LICENSES.md](LICENSES.md) before any commercial use.
 
 ## Security
 
-Anvesh requires named accounts with roles (operator, supervisor, administrator). On first start, open the app on the
-server computer and create the administrator; add officers under **Users**. Personal data is encrypted field by field
-(AES-256-GCM) with a master key kept outside the data folder, identifiers are linked through keyed blind indexes, the
-audit log is an HMAC-signed chain with no personal data in it, and every route, role and protection is covered by
-`backend/tests/test_security.py`. See [SECURITY.md](SECURITY.md) for the threat model, controls and known limits.
-**Back up `~/.anvesh/keys/master.key` separately from the data: without it the encrypted cases cannot be read.**
+Anvesh handles some of the most sensitive data a police unit holds, so it has:
 
----
+- **Accounts and roles.** Named accounts with roles (operator, supervisor, administrator), scrypt password hashes,
+  account lockout and 30-minute idle sessions.
+- **Encryption.** Field-level AES-256-GCM encryption of personal data, and keyed blind indexes for linking
+  identifiers.
+- **Audit.** An HMAC-signed audit chain that contains no personal data.
+- **Tests.** Every route and role is covered by `backend/tests/test_security.py`.
+
+See [SECURITY.md](SECURITY.md) for the threat model and controls.
+**Back up `~/.anvesh/keys/master.key` separately: without it the encrypted cases cannot be read.**
+
+## Roadmap
+
+Telephony integration for live 1930 calls · NCRP-format export · speaker diarization · emotion model fine-tuned on
+commercially licensed Indian-language data · per-language validation · campaign radar for new scam scripts ·
+multi-tenant deployment and DPDP Act compliance mapping.
+
+## Project structure
+
+```
+backend/
+  anvesh/          API, speech models, live SER, NLP, triage, linker, audit, storage
+  anvesh/data/     official NCRB / I4C / DoT data with sources.json
+  eval/            extraction and speech-emotion evaluation scripts
+  tests/           105 unit, API and security tests
+frontend/          Next.js workspace and landing page
+scripts/           Windows setup and start scripts
+docs/screenshots/  images used in this README
+```
 
 ## Author
 
-**Yashvi Chotalia** — design, development and research. Footage on the landing page is from Pexels (free licence);
-the people shown are actors. Official statistics are credited in `backend/anvesh/data/official/sources.json`.
+**Yashvi Chotalia**: design, development and research.
+Landing-page footage is from Pexels (free licence); the people shown are actors. Official statistics are credited in
+`backend/anvesh/data/official/sources.json`.

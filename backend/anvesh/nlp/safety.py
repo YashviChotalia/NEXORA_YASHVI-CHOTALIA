@@ -25,6 +25,39 @@ CRISIS_PHRASES = [
     "kuch kar lungi", "suicide", "end my life", "kill myself", "no way out", "life is over",
     "zindagi barbaad", "sab kuch chala gaya", "jaan de dunga", "jaan de dungi",
     "जीने का मन नहीं", "मर जाऊंगा", "सब खत्म",
+    # self-harm
+    "khud ko nuksan", "khud ko hurt", "hurt myself", "harm myself", "cut myself", "khud ko maar",
+    "apni jaan le", "jaan le lunga", "jaan le lungi", "want to die", "wish i was dead", "better off dead",
+    "zinda nahi rehna", "nahi jeena", "jeena nahi chahta", "jeena nahi chahti", "khatam kar lunga",
+    "khatam kar lungi", "apne aap ko khatam", "खुद को नुकसान", "जीना नहीं", "जान दे दूंगा", "जान दे दूंगी",
+    # strongly self-demeaning (worthlessness, being a burden): risk markers, not ordinary self-blame
+    "main kisi kaam ka nahi", "main kisi kaam ki nahi", "main bekaar hoon", "main bojh hoon", "sab par bojh",
+    "sabke liye bojh", "mujhse koi pyaar nahi", "mera koi nahi", "main ghatiya hoon", "kisi ko munh nahi dikha",
+    "munh dikhane layak nahi", "i am worthless", "i'm worthless", "i am a burden", "i'm a burden",
+    "nobody would miss me", "no one would miss me", "मैं किसी काम का नहीं", "मैं बोझ हूं", "मुंह दिखाने लायक नहीं",
+]
+
+# a threat to the caller's life or safety right now -> 112
+DANGER_PHRASES = [
+    "jaan se maar", "maar denge", "maar dalenge", "jaan ka khatra", "ghar ke bahar khade", "ghar pe aa gaye",
+    "ghar aa gaye hain", "utha le jayenge", "kidnap", "agwa", "bandook", "goli maar", "chaku",
+    "kill me", "will kill", "going to kill", "threatening to kill", "outside my house", "at my door",
+    "they are coming", "with a gun", "with a knife", "जान से मार", "मार देंगे", "जान का खतरा",
+]
+
+# a woman facing sextortion, stalking or harassment -> 181 (officer confirms)
+WOMEN_PHRASES = [
+    "meri photo morph", "photo morph", "nude photo", "nude video", "nangi video", "gandi video", "private photos",
+    "private video", "viral kar denge", "viral kar dega", "leak kar denge", "stalk kar raha", "peecha kar raha",
+    "pichha kar raha", "harass kar raha", "blackmail kar raha", "sextortion", "morphed", "leak my photos",
+    "stalking me", "harassing me", "न्यूड वीडियो", "वायरल कर देंगे",
+]
+
+# the person at risk is a child -> 1098 (officer confirms)
+CHILD_PHRASES = [
+    "meri beti", "mera beta", "mera bachcha", "meri bachchi", "naabaalig", "nabalig", "minor hai", "school mein padhti",
+    "school mein padhta", "class mein padhti", "class mein padhta", "saal ki hai", "saal ka hai", "my daughter",
+    "my son", "my child", "she is a minor", "he is a minor", "मेरी बेटी", "मेरा बेटा", "नाबालिग",
 ]
 
 DISTRESS_LEXICON = [
@@ -46,6 +79,9 @@ class SafetySignals:
     coercion_hits: list[dict] = field(default_factory=list)
     crisis_hits: list[dict] = field(default_factory=list)
     distress_lexical: list[dict] = field(default_factory=list)
+    danger_hits: list[dict] = field(default_factory=list)
+    women_hits: list[dict] = field(default_factory=list)
+    child_hits: list[dict] = field(default_factory=list)
 
 
 def _find(text: str, phrases: list[str]) -> list[tuple[str, int, int]]:
@@ -68,7 +104,8 @@ def scan(segments) -> SafetySignals:
         if getattr(seg, "speaker", None) == "officer":
             continue
         for bucket, phrases in ((sig.coercion_hits, COERCION_PHRASES), (sig.crisis_hits, CRISIS_PHRASES),
-                                (sig.distress_lexical, DISTRESS_LEXICON)):
+                                (sig.distress_lexical, DISTRESS_LEXICON), (sig.danger_hits, DANGER_PHRASES),
+                                (sig.women_hits, WOMEN_PHRASES), (sig.child_hits, CHILD_PHRASES)):
             for p, s, e in _find(seg.text, phrases):
                 n = max(len(seg.text), 1)
                 dur = seg.end - seg.start

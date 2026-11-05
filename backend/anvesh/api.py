@@ -32,9 +32,38 @@ from .triage import FIELD_LABELS
 log = logging.getLogger("anvesh.api")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+def bootstrap_admin() -> str | None:
+    """Create the first administrator from ANVESH_BOOTSTRAP_ADMIN / ANVESH_BOOTSTRAP_PASSWORD when no user exists.
+
+    For hosted deployments (e.g. a Hugging Face Space), where nobody can open the app "from the server itself" for
+    first-run setup. Does nothing once any account exists, so the variables can stay set. The account must change
+    its password on first sign-in.
+    """
+    username = os.getenv("ANVESH_BOOTSTRAP_ADMIN", "").strip().lower()
+    password = os.getenv("ANVESH_BOOTSTRAP_PASSWORD", "")
+    if not username or not password:
+        return None
+    with SessionLocal() as db:
+        if auth.user_count(db) > 0:
+            return None
+        problems = auth.password_problems(password, username)
+        if not auth.USERNAME_RE.match(username) or problems:
+            log.error("ANVESH_BOOTSTRAP_ADMIN not created: invalid username or password needs %s", "; ".join(problems or ["a valid username"]))
+            return None
+        u = User(username=username, display_name=os.getenv("ANVESH_BOOTSTRAP_NAME", "Administrator").strip()[:120],
+                 roles=["admin", "supervisor"], pw_hash=auth.hash_password(password), must_change_password=True)
+        db.add(u)
+        db.flush()
+        audit.record(db, u.username, "auth.bootstrap", None, {"roles": u.roles})
+        db.commit()
+        log.info("bootstrap administrator %r created", username)
+        return username
+
+
 @asynccontextmanager
 async def lifespan(_app):
     init_db()
+    bootstrap_admin()
     storage.rekey_legacy()
     retention.purge_expired()
     M.warmup()  # load speech models in the background so the first live call does not wait

@@ -474,3 +474,31 @@ def test_csrf_token_survives_a_second_tab():
     other_tab = c.get("/api/auth/state").json()["csrf_token"]
     assert other_tab == first
     assert c.post("/api/cases", json={"mode": "victim"}).status_code == 201
+
+
+def test_bootstrap_admin_only_when_no_accounts(monkeypatch):
+    from anvesh.api import bootstrap_admin
+    from anvesh.models import SessionLocal, User
+    monkeypatch.setenv("ANVESH_BOOTSTRAP_ADMIN", "boot.admin")
+    monkeypatch.setenv("ANVESH_BOOTSTRAP_PASSWORD", "weak")
+    with SessionLocal() as db:
+        empty = auth.user_count(db) == 0
+    if empty:  # a weak password is refused even on an empty database
+        assert bootstrap_admin() is None
+    make_user(("admin",))
+    monkeypatch.setenv("ANVESH_BOOTSTRAP_PASSWORD", "Str0ng-Boot-Passw0rd!")
+    assert bootstrap_admin() is None  # accounts exist: never adds a second admin
+    with SessionLocal() as db:
+        assert db.query(User).filter_by(username="boot.admin").first() is None
+
+
+def test_bootstrap_admin_must_change_password(monkeypatch):
+    from anvesh.api import bootstrap_admin
+    from anvesh.models import SessionLocal, User
+    monkeypatch.setattr(auth, "user_count", lambda db: 0)
+    monkeypatch.setenv("ANVESH_BOOTSTRAP_ADMIN", "boot.admin2")
+    monkeypatch.setenv("ANVESH_BOOTSTRAP_PASSWORD", "Str0ng-Boot-Passw0rd!")
+    assert bootstrap_admin() == "boot.admin2"
+    with SessionLocal() as db:
+        u = db.query(User).filter_by(username="boot.admin2").one()
+        assert u.must_change_password and set(u.roles) == {"admin", "supervisor"}

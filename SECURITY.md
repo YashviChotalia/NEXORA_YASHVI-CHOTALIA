@@ -75,6 +75,17 @@ what we protect, from whom, how, and how it is tested.
 - `ANVESH_RETENTION_DAYS` automatically erases closed cases older than N days.
 - Training scenarios are kept apart from live cases and never link to them.
 
+### Helpline hand-off (telephony)
+
+- An automatic transfer only starts on a **live** victim or informant call, only for Tele-MANAS 14416 and 112, and
+  only after a countdown (default 10 s) that any officer on the case can cancel. It is a three-way conference, never
+  a blind transfer.
+- In `webhook` mode the request to the phone system is signed (`X-Anvesh-Signature`, HMAC-SHA256 of the body with
+  `ANVESH_TELEPHONY_SECRET`) and carries only the call reference, the helpline number and the case id; no
+  transcript or audio leaves Anvesh. The reason text, which quotes the caller, is stored encrypted.
+- Start, suggestion, connection, failure and cancellation are each written to the hash-chained audit log with
+  the acting officer (or `system:auto-handoff`).
+
 ## Testing
 
 - `backend/tests/test_security.py` contains 38 security tests, run in CI on every push. They cover anonymous access to every route, impersonation, cookie flags and hashed tokens, logout replay, idle expiry, password hashing and policy, lockout and no username oracle, rate limits, one-time setup, forced password change, session kill on disable, the role matrix, training-case abuse, informant masking, CSRF, CORS, plaintext absent from the raw database file, ciphertext bound to its column, blind-index linking, key location, evidence encryption, tamper detection and path confinement, audit privacy, audit tamper and re-forge detection, access logging, erasure, security headers, malformed IDs, injection strings, size and type limits, filename sanitising, WebSocket authentication and origin checks, no secrets in the frontend, and the plaintext-to-encrypted upgrade.

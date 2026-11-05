@@ -95,7 +95,12 @@ with their sources.
 - **Distress track.** Sustained distress (not single spikes), role-gated, and abstains on poor audio or languages
   that have not been validated.
 - **Coercion and crisis alerts.** Phrases like *"kisi ko mat batana"* or *"abhi bhi video call pe hain"* raise a
-  possible-active-coercion alert. Crisis language prompts a hand-over to Tele-MANAS (14416).
+  possible-active-coercion alert.
+- **Automatic helpline hand-off, in the same call.** Words about suicide, self-harm or worthlessness on a live
+  victim call start a **warm transfer to Tele-MANAS 14416**; a threat to life starts one to **112**. The caller does
+  nothing: the officer sees *"Connecting to Tele-MANAS in 10 s"* with **Cancel**, and if nobody cancels the
+  helpline joins as a **three-way call**, so the officer stays on until the counsellor takes over. Women's helpline
+  **181**, Childline **1098** and **1930** are one-click suggestions. Every step is in the audit log.
 
 **Investigation support**
 
@@ -288,6 +293,9 @@ All settings are optional environment variables.
 | `ANVESH_ENABLE_ASR_FINAL` / `_EMOTION` / `_SPEAKER` / `_SPOOF` | `1` | turn individual models off (`0`) |
 | `ANVESH_TEXT_EMBEDDER` | *(empty)* | e.g. `paraphrase-multilingual-MiniLM-L12-v2` for cross-language script links |
 | `ANVESH_VALIDATED_LANGS` | `en,hi` | languages where the voice distress track may score |
+| `ANVESH_TELEPHONY` | `demo` | helpline hand-off: `demo` (full flow, no real call), `webhook` (signed POST to your PBX / contact-centre bridge), `off` (suggestions only) |
+| `ANVESH_TELEPHONY_URL`, `ANVESH_TELEPHONY_SECRET` | | webhook endpoint and HMAC secret for `webhook` mode |
+| `ANVESH_HANDOFF_COUNTDOWN_S` | `10` | seconds the officer has to cancel an automatic transfer |
 | `ANVESH_SER_HEAD` | `auto` | telephone-adapted emotion head: `auto` (use it when present), `off` (raw emotion2vec+), or a path to another head file |
 | `ANVESH_MASTER_KEY` | generated in `~/.anvesh/keys` | 32-byte base64 master key (use a secret manager in production) |
 | `ANVESH_SESSION_IDLE_MIN` / `ANVESH_SESSION_MAX_HOURS` | `30` / `12` | session idle timeout and maximum lifetime |

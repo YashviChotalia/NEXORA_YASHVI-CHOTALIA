@@ -156,8 +156,12 @@ def _positive(v) -> bool:
 
 def compute_windows(x: np.ndarray, offset: float = 0.0, segs: list[dict] | None = None,
                     role: str = "victim") -> list[dict]:
-    """Voice windows for the distress track: one per utterance when a transcript exists, silence skipped."""
-    spans = _utterance_spans(x, offset, segs) if segs else [(t0, t1) for t0, t1, _ in A.windows(x, 3.0)]
+    """Voice windows for the distress track: 3 s windows, silence skipped.
+
+    The same windows as a live call (live_ser.WINDOW_S) and as the evaluation (eval/run_call_eval.py), so an
+    uploaded recording is scored exactly the way the measured system was. `segs` is accepted for compatibility.
+    """
+    spans = [(t0, t1) for t0, t1, _ in A.windows(x, 3.0)]
     out = []
     for t0, t1 in spans:
         chunk = x[int(t0 * A.SR):int(t1 * A.SR)]

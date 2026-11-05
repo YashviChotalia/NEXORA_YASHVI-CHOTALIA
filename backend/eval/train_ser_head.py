@@ -38,6 +38,7 @@ CLASSES = ("neutral", "angry", "fearful", "sad")
 CREMA = {"NEU": "neutral", "ANG": "angry", "FEA": "fearful", "SAD": "sad"}
 # how often each condition is used for a training clip (helpline audio is mostly telephone audio)
 MIX = {"clean": 0.25, "phone": 0.35, "phone_snr20": 0.15, "phone_snr10": 0.15, "phone_snr5": 0.10}
+MAX_FALSE_ALARM = 0.20  # calm telephone speech flagged as needing attention, on validation speakers
 OUT = Path(__file__).resolve().parents[1] / "anvesh" / "data" / "models" / "ser_head_telephone.json"
 CACHE = Path(__file__).with_name("audio") / ".cache"
 
@@ -136,19 +137,49 @@ def fit(d: dict) -> tuple[dict, str]:
     logits = Xva @ clf.coef_.T + clf.intercept_
     temps = np.linspace(0.5, 4.0, 36)
     T = float(temps[int(np.argmin([_nll(_softmax(logits / t), d["y"][va]) for t in temps]))])
+    # Operating point (validation only): the smallest log-prior on "neutral" that keeps false alarms on calm
+    # telephone speech at or below MAX_FALSE_ALARM without lowering balanced accuracy.
+    P = _softmax(logits / T)
+    phone = va & (d["cond"] == "phone")
+    yv, yp = d["y"][va], d["y"][phone]
+    Pp = _softmax(sc.transform(d["X"][phone]) @ clf.coef_.T / T + clf.intercept_ / T)
+
+    def op(b: float) -> tuple[float, float, float]:
+        q = P.copy()
+        q[:, 0] *= np.exp(b)
+        pred = q.argmax(1)
+        bal = float(np.mean([np.mean(pred[yv == c] == c) for c in range(len(CLASSES))]))
+        qp = Pp.copy()
+        qp[:, 0] *= np.exp(b)
+        pp = qp.argmax(1)
+        fa = float(np.mean(pp[yp == 0] != 0)) if (yp == 0).any() else 0.0
+        rec = float(np.mean(pp[yp != 0] != 0)) if (yp != 0).any() else 0.0
+        return bal, fa, rec
+    bal0 = op(0.0)[0]
+    prior, sweep_rows = 0.0, []
+    for b in np.round(np.arange(0.0, 2.01, 0.1), 2):
+        bal, fa, rec = op(float(b))
+        sweep_rows.append(f"| {b:.1f} | {100 * bal:.1f}% | {100 * fa:.1f}% | {rec:.2f} |")
+        if fa <= MAX_FALSE_ALARM and bal >= bal0 - 1e-9:
+            prior = float(b)
+            break
+    lines += ["", "| neutral log-prior | validation balanced accuracy | phone false alarms on neutral | phone attention recall |",
+              "|---|---|---|---|", *sweep_rows]
     per_cond = {}
     for c in CONDITIONS:
         m = va & (d["cond"] == c)
         if m.any():
             per_cond[c] = round(float(np.mean(clf.predict(sc.transform(d["X"][m])) == d["y"][m])), 4)
     spec = {
-        "name": "telephone-adapted head v1",
+        "name": "telephone-adapted head v1.1",
         "base_model": str(d["model"]) if "/" in str(d["model"]) else "iic/emotion2vec_plus_base",
         "trained_on": "CREMA-D (acted English, ODbL), clean + simulated telephone channel + pink noise",
         "split": "speaker-disjoint: test = id % 3 == 0 (held out), validation = id % 9 in (1, 2), train = rest",
         "train_speakers": int(len(set(d["speaker"][tr]))), "train_clips": int(tr.sum()),
         "validation_speakers": int(len(set(d["speaker"][va]))), "validation_clips": int(va.sum()),
-        "conditions": MIX, "C": C, "temperature": round(T, 3),
+        "conditions": MIX, "C": C, "temperature": round(T, 3), "neutral_log_prior": prior,
+        "operating_point": f"smallest neutral log-prior with phone false alarms <= {MAX_FALSE_ALARM:.0%} on validation "
+                           "and no loss of balanced accuracy",
         "validation": {"accuracy": round(acc, 4), "accuracy_by_condition": per_cond},
         "created": date.today().isoformat(),
         "classes": list(CLASSES),
@@ -185,7 +216,8 @@ def main(argv=None) -> int:
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(spec, separators=(",", ":")), encoding="utf-8")
     print(table)
-    print(f"chosen C={spec['C']}, temperature={spec['temperature']}, validation={spec['validation']}")
+    print(f"chosen C={spec['C']}, temperature={spec['temperature']}, neutral prior={spec['neutral_log_prior']}, "
+          f"validation={spec['validation']}")
     print(f"Saved {a.out}")
     return 0
 

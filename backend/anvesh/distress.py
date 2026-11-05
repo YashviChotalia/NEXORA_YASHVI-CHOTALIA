@@ -11,6 +11,12 @@ from statistics import mean, pstdev
 
 DISTRESS_EMOTIONS = {"fearful": 1.0, "fear": 1.0, "sad": 0.85, "angry": 0.6, "anger": 0.6, "disgusted": 0.4}
 ALLOWED_ROLES = {"victim", "informant"}
+# Voice levels. Chosen on validation speakers with eval/run_call_eval.py (whole simulated phone calls), never on
+# the test speakers: see EVALUATION.md, "Call-level distress".
+VOICE_ELEVATED = 0.40
+VOICE_HIGH = 0.55
+MIN_WINDOWS_HIGH = 4  # a "high" voice reading (the only one that can change priority) needs this many windows
+ACOUSTIC_RISE_ONLY = True  # only a RISE in arousal over the caller's own baseline adds distress
 
 
 @dataclass
@@ -105,6 +111,8 @@ def assess(role: str, windows: list[Window], lexical_hits: list[dict], crisis_hi
         e = _emo_score(emo)
         if e is not None:
             model_used = True
+        if a is not None and ACOUSTIC_RISE_ONLY:
+            a = max(0.0, a - 0.5) * 2  # 0.5 = the caller's usual voice: sounding like yourself is not distress
         s = (0.55 * e + 0.45 * a) if (e is not None and a is not None) else (e if e is not None else a)
         if s is None:
             continue
@@ -139,12 +147,15 @@ def assess(role: str, windows: list[Window], lexical_hits: list[dict], crisis_hi
                               "low" if (lexical_hits or crisis_hits or coercion) else "none",
                               timeline, reasons, abstain or ["Voice signal unavailable: level from words and situation."])
 
-    k = max(1, len(scores) // 4)
+    k = max(2, len(scores) // 4) if len(scores) >= 4 else 1  # "sustained": never a single window once there are 4+
     sustained = mean(sorted(scores)[-k:])  # sustained top quartile, not one spike
     recent = mean(scores[-3:])              # how the caller sounds now
     voice = 0.7 * sustained + 0.3 * recent
     score = min(1.0, max(floor, voice + words + context + (0.25 if crisis_hits else 0.0)))
-    level = "high" if crisis_hits or score >= 0.7 else "elevated" if score >= 0.45 else "low"
+    level = "high" if crisis_hits or score >= VOICE_HIGH else "elevated" if score >= VOICE_ELEVATED else "low"
+    if level == "high" and not crisis_hits and len(scores) < MIN_WINDOWS_HIGH:
+        level = "elevated"  # "sustained" needs time: a few seconds of speech can never raise a call's priority
+        reasons.append(f"Only {len(scores)} voice window(s) so far: shown as elevated until there is more speech")
     reasons.insert(0, "Voice emotion model + pitch/energy/pace change vs the caller's own baseline" if model_used
                    else "Pitch/energy/pace change vs the caller's own baseline (emotion model not loaded)")
     trend = None

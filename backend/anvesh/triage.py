@@ -144,7 +144,7 @@ def _distress_adjustment(priority: str, score: int, distress_level: str) -> dict
         points = max(0, LEVEL_FLOOR[to] - score)
         return {"from": priority, "to": to, "points": points,
                 "reason": f"Raised one level ({priority.title()} to {to.title()}): sustained high distress "
-                          "in the caller's voice and words (indicative; officer can override)"}
+                          "in the caller's call (indicative; officer can override)"}
     ceiling = LEVEL_FLOOR[LEVELS[i + 1]] - 1 if i < len(LEVELS) - 1 else 100
     points = min(RULES["distress_tiebreak_points"], max(0, ceiling - score))
     if distress_level in ("high", "elevated") and points > 0:

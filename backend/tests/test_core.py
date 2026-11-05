@@ -103,3 +103,20 @@ def test_silence_windows_are_not_scored():
     assert w and w[0]["silent"] and w[0]["emotions"] is None
     r = distress.assess("victim", [distress.Window(0, 3, {"disgusted": 0.9}, None, True)], [], [])
     assert r.timeline == []
+
+
+def test_sounding_like_your_usual_self_is_not_distress():
+    usual = {"pitch_std": 20.0, "rms": 0.05, "speech_rate": 3.0, "pause_ratio": 0.3, "snr_db": 30}
+    calm = {"neutral": 0.8, "sad": 0.1, "fearful": 0.1}
+    w = [distress.Window(i * 3, i * 3 + 3, calm, dict(usual)) for i in range(10)]
+    r = distress.assess("victim", w, [], [], language="hi")
+    assert r.level == "low", r.score  # an unchanged voice must not add distress on its own
+    loud = [distress.Window(i * 3, i * 3 + 3, {"fearful": 0.7, "neutral": 0.3},
+                            {**usual, "rms": 0.05 + 0.02 * i, "pitch_std": 20 + 6 * i}) for i in range(10)]
+    assert distress.assess("victim", loud, [], [], language="hi").score > r.score
+
+
+def test_a_few_seconds_of_speech_can_never_be_high():
+    w = [distress.Window(i * 3, i * 3 + 3, {"fearful": 0.95, "neutral": 0.05}, None) for i in range(2)]
+    r = distress.assess("victim", w, [], [], language="hi")
+    assert r.level == "elevated" and any("more speech" in x for x in r.reasons)

@@ -1,0 +1,118 @@
+{
+ "val/raw": {
+  "calls": 84,
+  "auc": 0.7990708478513356,
+  "paired": 0.8536585365853658,
+  "levels": {
+   "calm": {
+    "low": 21
+   },
+   "fearful": {
+    "low": 10,
+    "elevated": 10,
+    "high": 1
+   },
+   "sad": {
+    "low": 16,
+    "high": 1,
+    "elevated": 3,
+    "abstain": 1
+   },
+   "angry": {
+    "low": 14,
+    "elevated": 7
+   }
+  },
+  "calm_flagged": 0.0,
+  "distressed_flagged": 0.35714285714285715,
+  "distressed_high": 0.047619047619047616,
+  "calm_high": 0.0
+ },
+ "val/head": {
+  "calls": 84,
+  "auc": 0.913472706155633,
+  "paired": 0.926829268292683,
+  "levels": {
+   "calm": {
+    "low": 19,
+    "elevated": 2
+   },
+   "fearful": {
+    "elevated": 17,
+    "low": 1,
+    "high": 3
+   },
+   "sad": {
+    "elevated": 14,
+    "high": 2,
+    "low": 4,
+    "abstain": 1
+   },
+   "angry": {
+    "elevated": 10,
+    "low": 11
+   }
+  },
+  "calm_flagged": 0.09523809523809523,
+  "distressed_flagged": 0.8571428571428571,
+  "distressed_high": 0.11904761904761904,
+  "calm_high": 0.0
+ },
+ "test/raw": {
+  "calls": 120,
+  "auc": 0.8261494252873564,
+  "paired": 0.7758620689655172,
+  "levels": {
+   "calm": {
+    "low": 30
+   },
+   "fearful": {
+    "elevated": 11,
+    "low": 19
+   },
+   "sad": {
+    "elevated": 9,
+    "low": 18,
+    "high": 1,
+    "abstain": 2
+   },
+   "angry": {
+    "low": 26,
+    "elevated": 4
+   }
+  },
+  "calm_flagged": 0.0,
+  "distressed_flagged": 0.35,
+  "distressed_high": 0.016666666666666666,
+  "calm_high": 0.0
+ },
+ "test/head": {
+  "calls": 120,
+  "auc": 0.8494252873563218,
+  "paired": 0.8275862068965517,
+  "levels": {
+   "calm": {
+    "low": 24,
+    "elevated": 6
+   },
+   "fearful": {
+    "elevated": 26,
+    "low": 4
+   },
+   "sad": {
+    "elevated": 15,
+    "low": 9,
+    "high": 4,
+    "abstain": 2
+   },
+   "angry": {
+    "low": 12,
+    "elevated": 18
+   }
+  },
+  "calm_flagged": 0.2,
+  "distressed_flagged": 0.75,
+  "distressed_high": 0.06666666666666667,
+  "calm_high": 0.0
+ }
+}

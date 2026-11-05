@@ -8,11 +8,11 @@ Same held-out clips. Left: both systems answer every non-silent clip (equal cove
 
 | Condition | Accuracy raw → head | Attention recall raw → head | False alarms raw → head | ECE raw → head |
 |---|---|---|---|---|
-| Clean 16 kHz (studio) | 80.3% → **85.1%** | 0.86 → **0.98** | 1.1% → 12.6% | 0.16 → **0.07** |
-| Telephone channel (8 kHz, G.711) | 49.0% → **62.1%** | 0.44 → **0.83** | 2.6% → 25.1% | 0.44 → **0.02** |
-| Telephone + noise, 20 dB SNR | 40.1% → **54.4%** | 0.34 → **0.77** | 4.7% → 33.7% | 0.51 → **0.02** |
-| Telephone + noise, 10 dB SNR | 39.4% → **47.1%** | 0.39 → **0.79** | 16.7% → 50.6% | 0.52 → **0.05** |
-| Telephone + noise, 5 dB SNR | 38.4% → **45.8%** | 0.48 → **0.83** | 34.9% → 58.7% | 0.53 → **0.04** |
+| Clean 16 kHz (studio) | 80.3% → **85.4%** | 0.86 → **0.95** | 1.1% → 6.6% | 0.16 → **0.05** |
+| Telephone channel (8 kHz, G.711) | 49.0% → **61.3%** | 0.44 → **0.72** | 2.6% → 13.1% | 0.44 → **0.03** |
+| Telephone + noise, 20 dB SNR | 40.1% → **53.1%** | 0.34 → **0.62** | 4.7% → 15.8% | 0.51 → **0.05** |
+| Telephone + noise, 10 dB SNR | 39.4% → **48.2%** | 0.39 → **0.63** | 16.7% → 26.2% | 0.52 → **0.05** |
+| Telephone + noise, 5 dB SNR | 38.4% → **47.6%** | 0.48 → **0.68** | 34.9% → 38.9% | 0.53 → **0.04** |
 
 The raw model's few false alarms on telephone audio come from calling almost everything *neutral*, which is also why it misses most callers who need attention. With the live abstention threshold (p < 0.45 → *uncertain*), the head answers fewer clips but is right more often when it does (section 1).
 
@@ -22,11 +22,11 @@ Sections 1-6 below describe the **telephone-adapted head**, which is what the li
 
 | Condition | Clips | Abstained | Accuracy (answered) | Macro recall | Attention P / R / F1 | False alarms on neutral |
 |---|---|---|---|---|---|---|
-| Clean 16 kHz (studio) | 800 | 21.5% | 87.9% | 87.0% | 0.97 / 0.98 / 0.98 | 8.0% |
-| Telephone channel (8 kHz, G.711) | 800 | 37.1% | 70.6% | 63.5% | 0.94 / 0.86 / 0.90 | 15.0% |
-| Telephone + noise, 20 dB SNR | 800 | 46.1% | 62.2% | 57.3% | 0.91 / 0.79 / 0.84 | 22.0% |
-| Telephone + noise, 10 dB SNR | 800 | 58.8% | 58.2% | 55.9% | 0.88 / 0.81 / 0.84 | 33.3% |
-| Telephone + noise, 5 dB SNR | 800 | 71.0% | 57.8% | 55.9% | 0.87 / 0.88 / 0.88 | 45.1% |
+| Clean 16 kHz (studio) | 800 | 21.5% | 88.2% | 86.7% | 0.98 / 0.97 / 0.98 | 4.6% |
+| Telephone channel (8 kHz, G.711) | 800 | 32.6% | 69.6% | 60.5% | 0.96 / 0.76 / 0.85 | 7.8% |
+| Telephone + noise, 20 dB SNR | 800 | 39.6% | 59.8% | 52.0% | 0.94 / 0.63 / 0.76 | 8.7% |
+| Telephone + noise, 10 dB SNR | 800 | 54.9% | 58.2% | 53.2% | 0.91 / 0.62 / 0.74 | 14.3% |
+| Telephone + noise, 5 dB SNR | 800 | 69.8% | 57.9% | 54.2% | 0.93 / 0.69 / 0.79 | 14.1% |
 
 Chance level for 4 balanced classes is 25%. *Attention* = fear, anger or sadness vs neutral.
 
@@ -34,65 +34,65 @@ With the distress track's audio-quality gate (windows under 8 dB estimated SNR a
 
 | Condition | Abstained | Accuracy (answered) | Attention recall |
 |---|---|---|---|
-| Clean 16 kHz (studio) | 22.5% | 87.9% | 0.98 |
-| Telephone channel (8 kHz, G.711) | 37.1% | 70.6% | 0.86 |
-| Telephone + noise, 20 dB SNR | 46.1% | 62.2% | 0.79 |
-| Telephone + noise, 10 dB SNR | 58.8% | 58.2% | 0.81 |
-| Telephone + noise, 5 dB SNR | 71.0% | 57.8% | 0.88 |
+| Clean 16 kHz (studio) | 22.5% | 88.2% | 0.97 |
+| Telephone channel (8 kHz, G.711) | 32.6% | 69.6% | 0.76 |
+| Telephone + noise, 20 dB SNR | 39.6% | 59.8% | 0.63 |
+| Telephone + noise, 10 dB SNR | 54.9% | 58.2% | 0.62 |
+| Telephone + noise, 5 dB SNR | 69.8% | 57.9% | 0.69 |
 
 ## 2. Per class (Clean 16 kHz (studio))
 
 | True \ predicted | neutral | angry | fearful | sad | uncertain / abstain | Recall |
 |---|---|---|---|---|---|---|
-| **neutral** | 150 | 11 | 1 | 1 | 37 | 92.0% |
+| **neutral** | 166 | 6 | 1 | 1 | 26 | 95.4% |
 | **angry** | 1 | 187 | 9 | 0 | 3 | 94.9% |
-| **fearful** | 3 | 10 | 125 | 21 | 41 | 78.6% |
-| **sad** | 3 | 5 | 11 | 90 | 91 | 82.6% |
+| **fearful** | 5 | 10 | 119 | 18 | 48 | 78.3% |
+| **sad** | 8 | 5 | 10 | 82 | 95 | 78.1% |
 
 ## 3. Calibration and the abstention threshold
 
-Expected calibration error (top-class probability vs being right, 10 bins): Clean 16 kHz (studio) **0.07**, Telephone channel (8 kHz, G.711) **0.02**, Telephone + noise, 20 dB SNR **0.02**, Telephone + noise, 10 dB SNR **0.05**, Telephone + noise, 5 dB SNR **0.04**
+Expected calibration error (top-class probability vs being right, 10 bins): Clean 16 kHz (studio) **0.05**, Telephone channel (8 kHz, G.711) **0.03**, Telephone + noise, 20 dB SNR **0.05**, Telephone + noise, 10 dB SNR **0.05**, Telephone + noise, 5 dB SNR **0.04**
 
 | Confidence bin | Clips | Mean confidence | Actual accuracy |
 |---|---|---|---|
-| 0.3-0.4 | 22 | 37.4% | 40.9% |
-| 0.4-0.5 | 59 | 45.4% | 64.4% |
-| 0.5-0.6 | 65 | 54.8% | 60.0% |
-| 0.6-0.7 | 54 | 64.9% | 74.1% |
-| 0.7-0.8 | 117 | 76.0% | 86.3% |
-| 0.8-0.9 | 109 | 85.0% | 97.2% |
-| 0.9-1.0 | 250 | 97.9% | 96.8% |
+| 0.3-0.4 | 16 | 37.1% | 37.5% |
+| 0.4-0.5 | 59 | 44.9% | 57.6% |
+| 0.5-0.6 | 55 | 54.5% | 65.5% |
+| 0.6-0.7 | 53 | 65.1% | 67.9% |
+| 0.7-0.8 | 100 | 75.9% | 82.0% |
+| 0.8-0.9 | 112 | 84.8% | 98.2% |
+| 0.9-1.0 | 281 | 97.5% | 97.2% |
 
 Threshold sweep (Telephone channel (8 kHz, G.711)): what the officer would see at each setting.
 
 | Abstain below p | Coverage (answered) | Accuracy (answered) | Attention recall |
 |---|---|---|---|
-| 0.00 | 85.5% | 62.1% | 0.83 |
-| 0.30 | 85.0% | 62.5% | 0.84 |
-| 0.35 | 80.0% | 64.4% | 0.84 |
-| 0.40 | 70.5% | 66.8% | 0.85 |
-| 0.45 ← used live | 62.9% | 70.6% | 0.86 |
-| 0.50 | 54.2% | 73.3% | 0.87 |
-| 0.60 | 38.1% | 81.3% | 0.91 |
-| 0.70 | 29.0% | 85.3% | 0.96 |
-| 0.80 | 19.4% | 90.3% | 0.99 |
-| 0.90 | 14.2% | 93.0% | 1.00 |
+| 0.00 | 85.5% | 61.3% | 0.72 |
+| 0.30 | 85.4% | 61.2% | 0.72 |
+| 0.35 | 81.9% | 62.3% | 0.72 |
+| 0.40 | 75.5% | 64.9% | 0.73 |
+| 0.45 ← used live | 67.4% | 69.6% | 0.76 |
+| 0.50 | 59.7% | 71.8% | 0.79 |
+| 0.60 | 46.5% | 77.7% | 0.81 |
+| 0.70 | 34.6% | 83.4% | 0.88 |
+| 0.80 | 23.1% | 88.1% | 0.95 |
+| 0.90 | 13.5% | 92.6% | 0.99 |
 
 ## 4. Fairness across speakers (Clean 16 kHz (studio))
 
 | Group | Speakers | Clips | Accuracy | Attention recall | False alarms on neutral |
 |---|---|---|---|---|---|
-| sex: female | 9 | 235 | 90.9% | 1.00 | 0.0% |
-| sex: male | 21 | 565 | 86.7% | 0.98 | 11.5% |
-| *sex: largest gap* | | | *4.2 pts* | | |
-| age: 20-29 | 10 | 267 | 86.5% | 0.98 | 11.1% |
-| age: 30-49 | 16 | 424 | 88.9% | 0.99 | 8.1% |
-| age: 50+ | 4 | 109 | 87.8% | 1.00 | 0.0% |
-| *age: largest gap* | | | *2.3 pts* | | |
-| race: African American | 10 | 265 | 88.4% | 1.00 | 9.8% |
-| race: Caucasian | 19 | 515 | 87.1% | 0.98 | 7.5% |
-| race: Unknown | 1 | 20 | 100.0% | 1.00 | 0.0% |
-| *race: largest gap* | | | *1.3 pts* | | |
+| sex: female | 9 | 235 | 90.8% | 0.98 | 0.0% |
+| sex: male | 21 | 565 | 87.2% | 0.97 | 6.6% |
+| *sex: largest gap* | | | *3.6 pts* | | |
+| age: 20-29 | 10 | 267 | 87.3% | 0.95 | 3.4% |
+| age: 30-49 | 16 | 424 | 89.4% | 0.98 | 6.5% |
+| age: 50+ | 4 | 109 | 86.4% | 0.98 | 0.0% |
+| *age: largest gap* | | | *3.1 pts* | | |
+| race: African American | 10 | 265 | 89.7% | 0.99 | 3.6% |
+| race: Caucasian | 19 | 515 | 87.3% | 0.96 | 5.3% |
+| race: Unknown | 1 | 20 | 89.5% | 0.86 | 0.0% |
+| *race: largest gap* | | | *2.4 pts* | | |
 
 *Largest gap is computed over groups with at least 3 speakers and 20 clips.*
 
@@ -102,14 +102,14 @@ ROC-AUC of each indicator as a score (0.5 = chance, 1.0 = perfect). The within-c
 
 | Indicator | Clean 16 kHz (studio) | Telephone channel (8 kHz, G.711) | Telephone + noise, 20 dB SNR | Telephone + noise, 10 dB SNR | Telephone + noise, 5 dB SNR |
 |---|---|---|---|---|---|
-| Fear (fear vs others) | 0.95 | 0.81 | 0.76 | 0.73 | 0.72 |
-| Anger (anger vs others) | 0.99 | 0.91 | 0.84 | 0.83 | 0.82 |
-| Distress (fear or sadness vs neutral) | 0.96 | 0.78 | 0.73 | 0.69 | 0.68 |
-| Any of the three (attention vs neutral) | 0.98 | 0.86 | 0.79 | 0.72 | 0.72 |
+| Fear (fear vs others) | 0.95 | 0.81 | 0.75 | 0.73 | 0.72 |
+| Anger (anger vs others) | 0.99 | 0.91 | 0.84 | 0.82 | 0.81 |
+| Distress (fear or sadness vs neutral) | 0.97 | 0.80 | 0.75 | 0.71 | 0.70 |
+| Any of the three (attention vs neutral) | 0.98 | 0.86 | 0.80 | 0.74 | 0.73 |
 
 ## 6. Model time
 
-Voice-emotion model per clip (≈ one 3 s live window) on this machine's CPU: median **275 ms**, p95 413 ms.
+Voice-emotion model per clip (≈ one 3 s live window) on this machine's CPU: median **334 ms**, p95 468 ms.
 
 
 *Data: 800 clips from 30 speakers, balanced over the four classes; CREMA-D test speakers are held out from head training (speaker id divisible by 3).*

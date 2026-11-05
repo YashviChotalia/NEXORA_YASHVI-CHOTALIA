@@ -192,7 +192,7 @@ const VA_LABEL: Record<string, string> = {
   insufficient_audio: "Not enough clear speech to check", not_checked: "Not checked",
 };
 const CALLER_CLASS: Record<string, string> = {
-  real_victim: "Real voice, consistent with a genuine victim", possible_fake_victim: "Possible fake victim: synthetic voice presenting as a victim",
+  real_victim: "Consistent with a live human voice (says nothing about who the caller is)", possible_fake_victim: "Possibly synthetic voice: verify the caller's identity before acting",
   real_informant: "Real voice, consistent with a genuine informant", possible_fake_informant: "Possible fake informant: synthetic voice",
   real_speaker: "Real human voice in the recording", possible_fake_speaker: "Recording may contain a synthetic or cloned voice",
   verify_identity: "Identity not confirmed: verify before acting", undetermined: "Not determined",

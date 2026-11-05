@@ -8,18 +8,19 @@ not measured.
 
 | What is tested | Data | How | Result |
 |---|---|---|---|
-| Software correctness | 115 unit, API and security tests | `pytest -q` (runs in CI on every push) | **115 / 115 pass** |
+| Software correctness | 117 unit, API and security tests | `pytest -q` (runs in CI on every push) | **117 / 117 pass** |
 | Hinglish field extraction | 20 scripted phrases, 38 field checks | `python eval/run_eval.py` (runs in CI) | **38 / 38 (100%)** on the development set |
-| Speech emotion through a phone line | CREMA-D, 800 clips from 30 held-out speakers | `python eval/run_ser_eval.py --holdout` | accuracy **49.0% → 62.1%**, attention recall **0.44 → 0.83** (raw model → Anvesh) |
-| Speech emotion, studio audio | same | same | accuracy **85.1%**, attention recall **0.98** |
-| Calibration and fairness | same | same | calibration error ≤ 0.07 on every condition; largest group gap 4.2 pts |
+| Speech emotion through a phone line | CREMA-D, 800 clips from 30 held-out speakers | `python eval/run_ser_eval.py --holdout` | accuracy **49.0% → 61.3%**, attention recall **0.44 → 0.72** (raw model → Anvesh) |
+| Speech emotion, studio audio | same | same | accuracy **85.4%**, attention recall **0.95** |
+| Calibration and fairness | same | same | calibration error ≤ 0.05 on every condition; largest group gap 3.6 pts |
+| Whole-call distress track | 120 simulated phone calls, 30 held-out speakers | `python eval/run_call_eval.py` | distressed flagged **75%** (raw 35%); calm calls reaching *high*: **0%** |
 | Safety behaviour (role gating, abstention, coercion alerts) | Unit tests with controlled inputs | `pytest -q` | **pass** |
 
 ---
 
 ## 1. Software tests
 
-`pytest -q` runs 115 tests with no speech models installed. They cover:
+`pytest -q` runs 117 tests with no speech models installed. They cover:
 
 - **Speech-emotion logic:** smoothing, the caller-baseline arousal model, mapping to fear, anger, distress and
   nervousness, abstention on silence and low confidence, and that a victim is never shown as "happy".
@@ -57,10 +58,10 @@ come first.
 ### Headline
 
 Helpline calls are **telephone audio**. We measured the off-the-shelf emotion model (emotion2vec+) on held-out speakers
-and found it loses much of its accuracy through a phone line, and stays over-confident while it is wrong. Anvesh
-therefore uses a **telephone-adapted head**: a small calibrated classifier on emotion2vec+'s own embedding, trained on
-clean, telephone and noisy-telephone speech from **other** speakers. It runs on the same forward pass (under 1 ms extra)
-and stays fully offline.
+and found it loses much of its accuracy through a phone line: it calls most distressed speech *neutral*, and stays
+about 99% confident while wrong. Anvesh therefore uses a **telephone-adapted head**: a small calibrated classifier on
+emotion2vec+'s own embedding, trained on clean, telephone and noisy-telephone speech from **other** speakers. It runs on
+the same forward pass (under 1 ms extra) and stays fully offline.
 
 ![Raw emotion2vec+ vs Anvesh telephone-adapted head](docs/eval/ser_telephone.png)
 
@@ -69,20 +70,24 @@ by abstaining more):
 
 | Condition | Accuracy raw → Anvesh | Attention recall raw → Anvesh | False alarms on neutral raw → Anvesh | Calibration error raw → Anvesh |
 |---|---|---|---|---|
-| Studio 16 kHz | 80.3% → **85.1%** | 0.86 → **0.98** | 1.1% → 12.6% | 0.16 → **0.07** |
-| Phone line (8 kHz, G.711) | 49.0% → **62.1%** | 0.44 → **0.83** | 2.6% → 25.1% | 0.44 → **0.02** |
-| Phone + noise, 20 dB | 40.1% → **54.4%** | 0.34 → **0.77** | 4.7% → 33.7% | 0.51 → **0.02** |
-| Phone + noise, 10 dB | 39.4% → **47.1%** | 0.39 → **0.79** | 16.7% → 50.6% | 0.52 → **0.05** |
-| Phone + noise, 5 dB | 38.4% → **45.8%** | 0.48 → **0.83** | 34.9% → 58.7% | 0.53 → **0.04** |
+| Studio 16 kHz | 80.3% → **85.4%** | 0.86 → **0.95** | 1.1% → 6.6% | 0.16 → **0.05** |
+| Phone line (8 kHz, G.711) | 49.0% → **61.3%** | 0.44 → **0.72** | 2.6% → 13.1% | 0.44 → **0.03** |
+| Phone + noise, 20 dB | 40.1% → **53.1%** | 0.34 → **0.62** | 4.7% → 15.8% | 0.51 → **0.05** |
+| Phone + noise, 10 dB | 39.4% → **48.2%** | 0.39 → **0.63** | 16.7% → 26.2% | 0.52 → **0.05** |
+| Phone + noise, 5 dB | 38.4% → **47.6%** | 0.48 → **0.68** | 34.9% → 38.9% | 0.53 → **0.04** |
 
 *Attention recall* is the share of fear / anger / sadness clips that are flagged, the decision that matters for
 prioritising a call. *False alarms* is the share of neutral clips flagged. Chance accuracy is 25%.
 
-**What this shows.** On a phone line the raw model calls most distressed speech *neutral*: it flags only 44% of
-callers who need attention. The adapted head flags 83%, is right more often, and its confidence can be trusted
-(calibration error 0.02 vs 0.44). The cost is more false alarms on calm speech, especially with heavy noise. That is
-why emotion can move a call by **at most one priority level**, only when distress is **sustained**, never for suspect
-recordings, and always with its reason shown to the officer (see `anvesh/triage.py`).
+**What this shows.** On a phone line the raw model flags only 44% of callers who need attention; the adapted
+head flags 72%, is right more often, and its confidence can be trusted (calibration error
+0.03 vs 0.44). The cost is more false alarms on calm speech, especially with heavy noise.
+
+**Operating point.** A head that only maximises accuracy flagged a third of calm phone speech on the validation
+speakers. The head therefore adds a small prior toward *neutral*, chosen on the **validation** speakers only by a
+fixed rule: the smallest prior that keeps false alarms on calm phone speech at or below 20% without lowering balanced
+accuracy (`eval/train_ser_head.py`). On the held-out test speakers this halved false alarms on the phone line
+(25% → 13%) for a drop in recall (0.83 → 0.72).
 
 ### What is evaluated
 
@@ -96,7 +101,8 @@ live voice-activity cut does.
 2. **Calibration:** expected calibration error, and a sweep of the abstention threshold.
 3. **Fairness:** accuracy and false alarms per speaker sex, age band and race.
 4. **The live indicators:** ROC-AUC of the fear, anger and distress scores themselves.
-5. **Model time** per 3-second window on CPU.
+5. **Whole calls** (section 3b): the distress track an officer actually sees.
+6. **Model time** per 3-second window on CPU.
 
 ### Data and split
 
@@ -107,9 +113,9 @@ live voice-activity cut does.
 
 The split is **by speaker**, so no voice is seen in both training and testing:
 
-- **Test:** speakers whose ID is divisible by 3 (30 speakers). Used only here: 800 clips, balanced, 200 per class.
-- **Validation:** other speakers with ID mod 9 equal to 1 or 2 (20 speakers). Used to choose regularisation and the
-  calibration temperature.
+- **Test:** speakers whose ID is divisible by 3 (30 speakers). Used only for reporting: 800 clips, 200 per class.
+- **Validation:** other speakers with ID mod 9 equal to 1 or 2 (20 speakers). Every choice (regularisation,
+  calibration temperature, the neutral prior, the distress thresholds) is made here.
 - **Train:** the remaining 41 speakers. 3,148 clips, each played through a random condition (25% clean, 35% phone, 40%
   phone with noise).
 
@@ -120,11 +126,13 @@ cd backend
 python eval/get_eval_audio.py --crema-all                       # CREMA-D clips + speaker demographics (~500 MB)
 python eval/train_ser_head.py --crema-d eval/audio/crema-d      # optional: rebuilds anvesh/data/models/ser_head_telephone.json
 python eval/run_ser_eval.py --crema-d eval/audio/crema-d --holdout --limit 800
-python eval/run_ser_eval.py --from-cache                        # re-derive every table from the saved predictions
+python eval/run_call_eval.py --crema-d eval/audio/crema-d       # whole simulated calls, validation + test speakers
+python eval/run_ser_eval.py --from-cache && python eval/run_call_eval.py --from-cache   # re-derive every table
 ```
 
-Full output: [`backend/eval/results/ser_results.md`](backend/eval/results/ser_results.md). The per-clip model outputs
-are saved in `backend/eval/results/predictions_*.csv` (no audio), so every number can be re-derived without the model.
+Full output: [`backend/eval/results/ser_results.md`](backend/eval/results/ser_results.md) and
+[`call_results.md`](backend/eval/results/call_results.md). Per-clip and per-window model outputs are saved in
+`backend/eval/results/` (no audio), so every number can be re-derived without the model.
 
 ### Live setting (what the officer sees)
 
@@ -132,78 +140,116 @@ With the live abstention threshold, the head answers fewer clips and is right mo
 
 | Condition | Answered | Accuracy (answered) | Attention precision / recall | False alarms on neutral |
 |---|---|---|---|---|
-| Studio 16 kHz | 78.5% | 87.9% | 0.97 / 0.98 | 8.0% |
-| Phone line (8 kHz, G.711) | 62.9% | 70.6% | 0.94 / 0.86 | 15.0% |
-| Phone + noise, 20 dB | 53.9% | 62.2% | 0.91 / 0.79 | 22.0% |
-| Phone + noise, 10 dB | 41.2% | 58.2% | 0.88 / 0.81 | 33.3% |
-| Phone + noise, 5 dB | 29.0% | 57.8% | 0.87 / 0.88 | 45.1% |
+| Studio 16 kHz | 78.5% | 88.2% | 0.98 / 0.97 | 4.6% |
+| Phone line (8 kHz, G.711) | 67.4% | 69.6% | 0.96 / 0.76 | 7.8% |
+| Phone + noise, 20 dB | 60.4% | 59.8% | 0.94 / 0.63 | 8.7% |
+| Phone + noise, 10 dB | 45.1% | 58.2% | 0.91 / 0.62 | 14.3% |
+| Phone + noise, 5 dB | 30.2% | 57.9% | 0.93 / 0.69 | 14.1% |
 
 Below 0.45 the officer sees *uncertain* instead of a guess. The threshold trades coverage for accuracy (phone line):
 
 | Abstain below p | Answered | Accuracy (answered) | Attention recall |
 |---|---|---|---|
-| 0.00 | 85.5% | 62.1% | 0.83 |
-| 0.35 | 80.0% | 64.4% | 0.84 |
-| 0.45 (live) | 62.9% | 70.6% | 0.86 |
-| 0.60 | 38.1% | 81.3% | 0.91 |
-| 0.80 | 19.4% | 90.3% | 0.99 |
+| 0.00 | 85.5% | 61.3% | 0.72 |
+| 0.35 | 81.9% | 62.3% | 0.72 |
+| 0.45 (live) | 67.4% | 69.6% | 0.76 |
+| 0.60 | 46.5% | 77.7% | 0.81 |
+| 0.80 | 23.1% | 88.1% | 0.95 |
 
 ### Calibration
 
-When the head says it is 80–90% sure on studio audio, it is right 97% of the time. On every telephone condition its
-calibration error stays at or below 0.05, compared with 0.44–0.53 for the raw model. This is what makes the
-abstention threshold meaningful: the raw model reports about 99% confidence even when it is wrong on a phone line.
+On every telephone condition the head's calibration error is at most 0.05, compared with
+0.44–0.53 for the raw model. This is what makes the abstention threshold meaningful: the raw model reports
+about 99% confidence even when it is wrong on a phone line.
 
 ### Fairness across speakers (studio audio, held-out speakers)
 
 | Group | Speakers | Clips | Accuracy | Attention recall | False alarms on neutral |
 |---|---|---|---|---|---|
-| sex: female | 9 | 235 | 90.9% | 1.00 | 0.0% |
-| sex: male | 21 | 565 | 86.7% | 0.98 | 11.5% |
-| age: 20-29 | 10 | 267 | 86.5% | 0.98 | 11.1% |
-| age: 30-49 | 16 | 424 | 88.9% | 0.99 | 8.1% |
-| age: 50+ | 4 | 109 | 87.8% | 1.00 | 0.0% |
-| race: African American | 10 | 265 | 88.4% | 1.00 | 9.8% |
-| race: Caucasian | 19 | 515 | 87.1% | 0.98 | 7.5% |
+| sex: female | 9 | 235 | 90.8% | 0.98 | 0.0% |
+| sex: male | 21 | 565 | 87.2% | 0.97 | 6.6% |
+| age: 20-29 | 10 | 267 | 87.3% | 0.95 | 3.4% |
+| age: 30-49 | 16 | 424 | 89.4% | 0.98 | 6.5% |
+| age: 50+ | 4 | 109 | 86.4% | 0.98 | 0.0% |
+| race: African American | 10 | 265 | 89.7% | 0.99 | 3.6% |
+| race: Caucasian | 19 | 515 | 87.3% | 0.96 | 5.3% |
 
-Largest accuracy gap between groups with at least 3 speakers: sex 4.2 pts, age 2.3 pts,
-race 1.3 pts. The male group has more false alarms on neutral speech (raised male voices are read
-as anger more often). Only 30 speakers are in the test set and CREMA-D has no Indian speakers, so these gaps are a
-first check, not a guarantee.
+Largest accuracy gap between groups with at least 3 speakers: sex 3.6 pts, age 3.1 pts,
+race 2.4 pts. Only 30 speakers are in the test set and CREMA-D has no Indian speakers, so these gaps
+are a first check, not a guarantee.
 
 ### The live indicators
 
-ROC-AUC of each indicator as a score (0.5 = chance, 1.0 = perfect). This covers the model part. The part that compares
-the caller with their own voice earlier in the call needs a whole call, so it is covered by unit tests.
+ROC-AUC of each indicator as a score (0.5 = chance, 1.0 = perfect), single clips:
 
 | Indicator | Studio | Phone | +20 dB | +10 dB | +5 dB |
 |---|---|---|---|---|---|
-| Fear (fear vs others) | 0.95 | 0.81 | 0.76 | 0.73 | 0.72 |
-| Anger (anger vs others) | 0.99 | 0.91 | 0.84 | 0.83 | 0.82 |
-| Distress (fear or sadness vs neutral) | 0.96 | 0.78 | 0.73 | 0.69 | 0.68 |
-| Any of the three vs neutral | 0.98 | 0.86 | 0.79 | 0.72 | 0.72 |
+| Fear (fear vs others) | 0.95 | 0.81 | 0.75 | 0.73 | 0.72 |
+| Anger (anger vs others) | 0.99 | 0.91 | 0.84 | 0.82 | 0.81 |
+| Distress (fear or sadness vs neutral) | 0.97 | 0.80 | 0.75 | 0.71 | 0.70 |
+| Any of the three vs neutral | 0.98 | 0.86 | 0.80 | 0.74 | 0.73 |
 
 **Nervousness** has no label in any public dataset we could use, so it is **not validated** by these numbers. It is
 derived from the fear score plus a rise in loudness, pitch and pace against the caller's own baseline. Treat it as the
 least certain of the four signals.
 
+### 3b. Whole calls: the distress track
+
+The officer does not see single clips but a **distress level for the call** (`anvesh/distress.py`): 3-second windows,
+compared with the caller's own baseline, sustained over time. `eval/run_call_eval.py` builds one simulated phone call
+per speaker and emotion (10 of that speaker's sentences joined, telephone channel) and scores it with the app's own
+window rules and `distress.assess`, exactly as a call is scored.
+
+This evaluation found and fixed three problems in the distress track, each decided on the validation speakers:
+
+1. **Sounding like yourself counted as distress.** The acoustic term was 0.5 for a caller's *usual* voice, which
+   added a constant to every call. Now only a **rise** above the caller's baseline adds distress (as the live
+   indicators already did).
+2. **"Sustained" could be one window.** On short calls the top quarter of windows was a single window. It now needs
+   at least two, and a **high** reading (the only one that can change priority) needs at least four windows of speech.
+3. **Thresholds were hand-set for the raw model.** *Elevated* is now the lowest level that flags at most 10% of
+   validation calm calls (0.40); *high* sits above every validation calm call (0.55).
+
+| Speakers | System | Calls | AUC distressed vs calm | Distressed > calm (same speaker) | Calm flagged elevated+ | Distressed flagged elevated+ | Calm high | Distressed high |
+|---|---|---|---|---|---|---|---|---|
+| validation · raw | 84 | 0.80 | 85% | 0% | 36% | 0% | 5% |
+| validation · head | 84 | 0.91 | 93% | 10% | 86% | 0% | 12% |
+| **test · raw** | 120 | 0.83 | 78% | 0% | 35% | 0% | 2% |
+| **test · head** | 120 | 0.85 | 83% | 20% | 75% | 0% | 7% |
+
+Levels per call on the 30 test speakers (head):
+
+| Call | low | elevated | high | abstain |
+|---|---|---|---|---|
+| calm | 24 | 6 | 0 | 0 |
+| fearful | 4 | 26 | 0 | 0 |
+| sad | 9 | 15 | 4 | 2 |
+| angry | 12 | 18 | 0 | 0 |
+
+**What this means for priority.** *High* (the only level that can raise a call, by one level) was reached by no calm
+call, and by 7% of distressed calls: it is deliberately rare. *Elevated* (a tie-break inside a priority level) catches
+75% of distressed calls, but also 20% of calm ones on the test speakers, twice the validation rate. Anger
+is often *elevated* too: angry callers are not "distressed" by this definition, but they do get attention.
+
 ### How to read the results
 
 - CREMA-D is acted English. Results on real Hindi or Hinglish calls will differ (see limitations).
 - The telephone channel is simulated. Real networks add codec artefacts (AMR, VoIP packet loss) that are not modelled.
+- The simulated calls are short (10 sentences, about 25 s). Real calls are longer, which helps the sustained rules.
 - Fear and sadness are often confused. For triage this matters less, because both raise the *distress* signal.
 
 ## 4. Live performance
 
 | Metric | Result | How |
 |---|---|---|
-| Emotion model per 3 s window (CPU, 2 cores) | median **275 ms**, p95 413 ms | `run_ser_eval.py`, section 6 |
+| Emotion model per 3 s window (CPU, 2 cores) | median **334 ms**, p95 468 ms | `run_ser_eval.py`, section 6 |
 | Telephone head | < 1 ms | one 4 × 768 matrix product |
 | Emotion update interval | every 1.5 s of audio | `live_ser.HOP_S` |
 | Live latency on your machine | median and p95, rolling | shown in the live call bar; `/api/health` → `live_latency` |
 
 The live view shows two numbers during a call: *voice signal N ms* (last audio sample in → emotion reading out) and
-*transcript N s after speech* (end of a spoken chunk → transcript and case file on screen).
+*transcript N s after speech* (end of a spoken chunk → transcript and case file on screen). Uploaded recordings are
+scored with the same 3-second windows as live calls.
 
 ---
 
@@ -214,7 +260,8 @@ The live view shows two numbers during a call: *voice signal N ms* (last audio s
 2. **Acted vs real emotion.** CREMA-D and role-play are acted; real distress can sound different (quieter, flatter,
    or masked by politeness).
 3. **Telephone audio.** Even with the telephone-adapted head, accuracy on a noisy phone line (10 dB SNR or worse)
-   is below 50% at full coverage, and false alarms on calm speech rise (34–59%). The system abstains more on such
+   is below 50% at full coverage, and false alarms on calm speech rise (26–39%). On whole calls, 1 in 5 calm calls
+   from the test speakers was shown as *elevated* (a tie-break only). The system abstains more on such
    audio, emotion can move priority by one level at most, and only sustained distress counts. The phone channel in
    the evaluation is simulated (G.711); real networks add other codecs and packet loss.
 4. **Model bias.** emotion2vec+ was trained mostly on Chinese and English speech, and the telephone head on English

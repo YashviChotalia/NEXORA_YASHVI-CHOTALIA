@@ -41,3 +41,24 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Assemble the Hugging Face Space build
+        run: python scripts/deploy_space.py --no-upload
+      - name: Check start script and nginx config
+        run: |
+          sh -n logs/space-build/start.sh
+          head -c 2 logs/space-build/start.sh | grep -q '#!'
+          ! grep -q $'\r' logs/space-build/start.sh
+          sudo apt-get install -y -q nginx >/dev/null
+          sudo nginx -t -c "$PWD/logs/space-build/nginx.conf"
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - name: Build the frontend in same-origin mode (as in the Space)
+        working-directory: logs/space-build/frontend
+        env: { NEXT_PUBLIC_API_URL: "" }
+        run: npm ci && npm run build

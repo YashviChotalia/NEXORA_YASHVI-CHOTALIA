@@ -1,8 +1,14 @@
 """Transparent, configurable triage rules.
 
 Financial urgency is driven by reported facts (recency, loss, missing critical
-fields), never by emotion scores. Human-safety flags (crisis, coercion) are a
-separate track that can raise a case to immediate human attention.
+fields). Human-safety flags (crisis, coercion) can raise a case to immediate
+human attention.
+
+Voice distress is an *assistance* signal with a small, capped and visible role:
+sustained high distress on a live victim / informant call raises the priority by
+at most ONE level, and elevated distress only breaks ties inside a level. It never
+applies to suspect recordings, never touches the financial score, is always shown
+with its reason, and the officer can override it.
 """
 
 from __future__ import annotations
@@ -18,7 +24,13 @@ RULES = {
     "large_loss_inr": 100_000,
     "critical_fields": ["amount_lost", "incident_time", "upi_id", "bank"],
     "safety_live_window_min": 6 * 60,  # crisis / coercion flags escalate for 6 h after the call
+    "distress_raise_one_level": True,  # sustained high distress: +1 priority level (capped), live calls only
+    "distress_tiebreak_points": 8,  # elevated distress: a few points, never across a level boundary
 }
+
+LEVELS = ("STANDARD", "HIGH", "IMMEDIATE")
+LEVEL_FLOOR = {"STANDARD": 0, "HIGH": 30, "IMMEDIATE": 60}
+EMOTION_ROLES = ("victim", "informant")
 
 NEXT_ACTION_FIN = ("Follow the financial-fraud reporting procedure promptly: register on 1930 / NCRP and "
                    "contact the debited bank through its official channel.")
@@ -34,6 +46,8 @@ class Triage:
     next_action: str = ""
     human_safety: list[str] = field(default_factory=list)
     evidence_status: str = "Awaiting verification"
+    financial_score: int = 0  # facts only; emotion never changes this
+    emotion_adjustment: dict | None = None  # {"from", "to", "points", "reason"} when distress changed the order
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -95,16 +109,17 @@ def assess(mode: str, fields: dict[str, Field], now: datetime, coercion: bool, c
                       else "Coercion reported during the call: confirm the caller is safe")
         score = max(score, 85 if live else score + 10)
     if distress_level == "high" and not crisis:
-        # shown to the officer, but never added to the financial priority score
         safety.append("Sustained high distress in the caller's voice (indicative)")
 
     score = min(score, 100)
-    if score >= 60 or ((crisis or coercion) and live):
-        priority = "IMMEDIATE"
-    elif score >= 30:
-        priority = "HIGH"
-    else:
-        priority = "STANDARD"
+    financial = score
+    priority = _level(score, (crisis or coercion) and live)
+    adjustment = None
+    if mode in EMOTION_ROLES and live and distress_level in ("high", "elevated"):
+        adjustment = _distress_adjustment(priority, score, distress_level)
+        if adjustment:
+            priority, score = adjustment["to"], score + adjustment["points"]
+            reasons.append(adjustment["reason"])
 
     headline = "Financial fraud triage" if amt else "Incident intake"
     if crisis or coercion:
@@ -112,4 +127,28 @@ def assess(mode: str, fields: dict[str, Field], now: datetime, coercion: bool, c
     status = ("Verified by officer" if verified and all(f in verified for f in fields)
               else "Partly verified" if verified else "Awaiting verification")
     return Triage(priority, score, headline, reasons, missing, NEXT_ACTION_FIN if amt else
-                  "Capture the incident details; ask how it started.", safety, status)
+                  "Capture the incident details; ask how it started.", safety, status, financial, adjustment)
+
+
+def _level(score: int, safety_live: bool) -> str:
+    if score >= 60 or safety_live:
+        return "IMMEDIATE"
+    return "HIGH" if score >= 30 else "STANDARD"
+
+
+def _distress_adjustment(priority: str, score: int, distress_level: str) -> dict | None:
+    """The only place emotion touches the queue order. Capped: one level up, or a tie-break inside a level."""
+    i = LEVELS.index(priority)
+    if distress_level == "high" and RULES["distress_raise_one_level"] and i < len(LEVELS) - 1:
+        to = LEVELS[i + 1]
+        points = max(0, LEVEL_FLOOR[to] - score)
+        return {"from": priority, "to": to, "points": points,
+                "reason": f"Raised one level ({priority.title()} to {to.title()}): sustained high distress "
+                          "in the caller's voice and words (indicative; officer can override)"}
+    ceiling = LEVEL_FLOOR[LEVELS[i + 1]] - 1 if i < len(LEVELS) - 1 else 100
+    points = min(RULES["distress_tiebreak_points"], max(0, ceiling - score))
+    if distress_level in ("high", "elevated") and points > 0:
+        return {"from": priority, "to": priority, "points": points,
+                "reason": f"Moved up within {priority.title()}: {distress_level} distress in the caller's voice "
+                          "(indicative; tie-break only, never changes the level)"}
+    return None

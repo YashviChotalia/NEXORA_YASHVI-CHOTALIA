@@ -38,6 +38,8 @@ class Settings:
     enable_asr_final: bool = _bool("ANVESH_ENABLE_ASR_FINAL", True)
     emotion_model: str = os.getenv("ANVESH_EMOTION_MODEL", "iic/emotion2vec_plus_base")
     enable_emotion: bool = _bool("ANVESH_ENABLE_EMOTION", True)
+    # telephone-adapted head on emotion2vec+ embeddings ("auto" = use it when its weights file is present, "off" = raw model)
+    ser_head: str = os.getenv("ANVESH_SER_HEAD", "auto")
     enable_speaker: bool = _bool("ANVESH_ENABLE_SPEAKER", True)
     # synthetic / cloned voice detection (audio-classification model with real vs fake labels)
     spoof_model: str = os.getenv("ANVESH_SPOOF_MODEL", "MelodyMachine/Deepfake-audio-detection-V2")

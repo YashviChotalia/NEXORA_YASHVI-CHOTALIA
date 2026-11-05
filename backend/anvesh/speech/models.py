@@ -202,18 +202,43 @@ class Emotion(_Lazy):
         hub = "hf" if self.model_id.startswith("emotion2vec/") else "ms"
         return AutoModel(model=self.model_id, hub=hub, disable_update=True, disable_pbar=True)
 
-    def predict(self, audio: np.ndarray) -> dict[str, float] | None:
-        m = self.get(block=False)  # never stall a live call waiting for a download
-        if m is None:
+    def head(self):
+        """The telephone-adapted head (see speech/ser_head.py), or None when it is off or not built."""
+        if settings.ser_head.lower() in ("off", "0", "false", "none"):
             return None
-        res = m.generate(audio.astype(np.float32), granularity="utterance", extract_embedding=False, disable_pbar=True)
+        from . import ser_head
+        return ser_head.load(None if settings.ser_head.lower() in ("auto", "on", "1", "true") else settings.ser_head)
+
+    def predict_full(self, audio: np.ndarray, block: bool = False) -> tuple[dict[str, float] | None, np.ndarray | None]:
+        """Raw emotion2vec+ distribution (renormalised over real emotions) and its 768-d utterance embedding."""
+        m = self.get(block=block)  # live calls never stall waiting for a download
+        if m is None:
+            return None, None
+        res = m.generate(audio.astype(np.float32), granularity="utterance", extract_embedding=True, disable_pbar=True)
         r = res[0] if isinstance(res, list) else res
         labels = [str(lbl).split("/")[-1].lower() for lbl in r["labels"]]
         scores = {lbl: float(s) for lbl, s in zip(labels, r["scores"]) if lbl not in EMO_IGNORE}
         total = sum(scores.values())
+        feats = np.asarray(r["feats"], dtype=np.float32).reshape(-1) if r.get("feats") is not None else None
         if total <= 0:
-            return None
-        return {lbl: round(v / total, 4) for lbl, v in scores.items()}  # renormalised over real emotions
+            return None, feats
+        return {lbl: round(v / total, 4) for lbl, v in scores.items()}, feats
+
+    def predict(self, audio: np.ndarray) -> dict[str, float] | None:
+        raw, feats = self.predict_full(audio)
+        h = self.head()
+        if h is not None and feats is not None:
+            adapted = h.predict(feats)
+            if adapted:
+                return adapted
+        return raw
+
+    def status(self) -> ModelStatus:
+        st = super().status()
+        h = self.head()
+        if h is not None and st.loaded:
+            st.model = f"{st.model} + {h.spec.get('name', 'telephone head')}"
+        return st
 
 
 class Speaker(_Lazy):

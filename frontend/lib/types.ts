@@ -16,6 +16,9 @@ export interface SegmentT {
 export interface Triage {
   priority: Priority; score: number; headline: string; reasons: string[]; missing: string[];
   next_action: string; human_safety: string[]; evidence_status: string;
+  financial_score?: number;
+  /** set when voice distress changed the queue order (capped: one level, or a tie-break inside a level) */
+  emotion_adjustment?: { from: Priority; to: Priority; points: number; reason: string } | null;
 }
 export interface Distress {
   enabled: boolean; level: "off" | "abstain" | "low" | "elevated" | "high"; score: number | null;

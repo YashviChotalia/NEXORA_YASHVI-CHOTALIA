@@ -333,7 +333,7 @@ function Transcript({ c, focus, onLive, run, autostart, player, onPlaySeg, onLiv
   const [liveErr, setLiveErr] = useState<string | null>(null);
   const [liveNote, setLiveNote] = useState<string | null>(null);
   const [voice, setVoice] = useState<VoiceReading[]>([]);
-  const [stage, setStage] = useState<{ stage?: string; latency?: number; backlog?: number; hint?: string | null }>({});
+  const [stage, setStage] = useState<{ stage?: string; latency?: number; lag?: number; emoMs?: number; backlog?: number; hint?: string | null }>({});
   const [needsClick, setNeedsClick] = useState(false);
   const [liveAuth, setLiveAuth] = useState<VoiceAuth | null>(null);
   const lastSound = useRef(0);
@@ -359,9 +359,12 @@ function Transcript({ c, focus, onLive, run, autostart, player, onPlaySeg, onLiv
       const h = await startLive(api.wsUrl(c.id), (msg) => {
         if (msg.type === "update") {
           if (msg.case) onLive(msg.case);
-          setStage((s) => ({ ...s, stage: msg.final ? "saved" : "listening", latency: msg.latency_s, backlog: msg.backlog, hint: msg.hint }));
+          setStage((s) => ({ ...s, stage: msg.final ? "saved" : "listening", latency: msg.latency_s, lag: msg.lag_s ?? s.lag, backlog: msg.backlog, hint: msg.hint }));
         }
-        if (msg.type === "emotion") setVoice((v) => [...v.slice(-59), msg]);
+        if (msg.type === "emotion") {
+          setVoice((v) => [...v.slice(-59), msg]);
+          if (!msg.silent && typeof msg.latency_ms === "number") setStage((s) => ({ ...s, emoMs: msg.latency_ms }));
+        }
         if (msg.type === "voice_auth") setLiveAuth(msg);
         if (msg.type === "error") setLiveErr(msg.message);
         if (msg.type === "status") { setLiveNote(msg.message); setStage((s) => ({ ...s, stage: msg.stage, backlog: msg.backlog })); }
@@ -427,7 +430,7 @@ function Transcript({ c, focus, onLive, run, autostart, player, onPlaySeg, onLiv
       {live && (
         <div className="flex items-center gap-2 border-b border-line bg-crit-soft px-4 py-1.5 text-xs2 text-crit">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-crit" /> Recording
-          <span className="text-fg-3">· {STAGE_TEXT[stage.stage || "listening"] || "Listening"}{stage.latency ? ` · last segment ${stage.latency}s` : ""}{stage.backlog ? ` · ${stage.backlog} waiting` : ""}</span>
+          <span className="text-fg-3">· {STAGE_TEXT[stage.stage || "listening"] || "Listening"}{stage.lag ? ` · transcript ${stage.lag}s after speech` : stage.latency ? ` · last segment ${stage.latency}s` : ""}{typeof stage.emoMs === "number" ? ` · voice signal ${stage.emoMs} ms` : ""}{stage.backlog ? ` · ${stage.backlog} waiting` : ""}</span>
           <span className="ml-auto flex items-center gap-1.5 text-fg-3">Mic
             <span className="h-1.5 w-24 overflow-hidden rounded-full bg-crit-line"><span className="block h-full bg-crit transition-[width] duration-100" style={{ width: `${Math.min(100, level * 300)}%` }} /></span>
           </span>
@@ -522,7 +525,9 @@ function Assessment({ c }: { c: CaseDetail }) {
     <section className={clsx("panel border-l-4", bar)}>
       <header className="panel-h">
         <h3 className="panel-t">Assessment</h3>
-        <span className="text-xs2 text-fg-3">Rule-based · score {t.score}/100</span>
+        <span className="text-xs2 text-fg-3" title="Score from reported facts; voice distress can add a capped, visible adjustment">
+          Rule-based · score {t.score}/100{t.emotion_adjustment && typeof t.financial_score === "number" ? ` (facts ${t.financial_score} + voice ${t.emotion_adjustment.points})` : ""}
+        </span>
       </header>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4">
         <KV k="Priority" v={<PriorityBadge p={t.priority} />} />
@@ -531,6 +536,15 @@ function Assessment({ c }: { c: CaseDetail }) {
         <KV k="Incident time" v={f.incident_time ? f.incident_time.display : "Not captured"} />
         <KV className="col-span-2" k="Missing details" v={t.missing.length ? t.missing.map((m) => LABELS[m] || m).join(", ") : "None of the critical fields"} />
         <KV className="col-span-2" k="Recommended action" v={t.next_action} />
+        {t.emotion_adjustment && (
+          <KV className="col-span-2" k="Voice distress effect" v={
+            <span className="inline-flex flex-wrap items-center gap-2">
+              {t.emotion_adjustment.from !== t.emotion_adjustment.to
+                ? <><PriorityBadge p={t.emotion_adjustment.from} /><span className="text-fg-3">→</span><PriorityBadge p={t.emotion_adjustment.to} /></>
+                : <span className="rounded border border-line px-1.5 py-0.5 text-xs2 text-fg-2">Tie-break within {t.emotion_adjustment.to.toLowerCase()}</span>}
+              <span className="text-xs2 text-fg-3">Indicative signal, capped at one level. Review before acting.</span>
+            </span>} />
+        )}
       </div>
       {(t.human_safety.length > 0 || t.reasons.length > 0) && (
         <div className="border-t border-line px-4 py-3 text-xs2 text-fg-2">
@@ -539,7 +553,7 @@ function Assessment({ c }: { c: CaseDetail }) {
             {t.human_safety.map((r) => <li key={r} className="text-crit">{r}</li>)}
             {t.reasons.map((r) => <li key={r}>{r}</li>)}
           </ul>
-          <p className="mt-2 text-fg-3">Priority reflects reported facts only. It does not estimate whether funds can be recovered.</p>
+          <p className="mt-2 text-fg-3">Priority reflects reported facts. Sustained voice distress can raise it by at most one level and is always listed above; it is never used for suspect recordings. Priority does not estimate whether funds can be recovered.</p>
         </div>
       )}
     </section>

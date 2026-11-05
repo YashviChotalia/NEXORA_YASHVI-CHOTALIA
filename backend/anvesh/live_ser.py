@@ -139,6 +139,28 @@ class LiveEmotionTracker:
         return rec
 
 
+class LatencyStats:
+    """Rolling live-latency figures (process-wide), reported by /api/health and shown in the live view."""
+
+    def __init__(self, n: int = 500):
+        self.data: dict[str, deque] = {"emotion_ms": deque(maxlen=n), "transcript_s": deque(maxlen=n)}
+
+    def add(self, key: str, value: float) -> None:
+        self.data[key].append(float(value))
+
+    def summary(self) -> dict:
+        out = {}
+        for k, q in self.data.items():
+            if q:
+                a = np.sort(np.array(q))
+                out[k] = {"n": len(a), "median": round(float(np.median(a)), 2),
+                          "p95": round(float(a[int(0.95 * (len(a) - 1))]), 2)}
+        return out
+
+
+LATENCY = LatencyStats()
+
+
 class Chunker:
     """Decides where to cut live audio for transcription: at a pause, using an adaptive noise floor."""
 

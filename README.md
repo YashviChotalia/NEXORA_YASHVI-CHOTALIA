@@ -9,7 +9,8 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-frontend-000000?logo=nextdotjs&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-105%20passing-2ea44f)
+![Tests](https://img.shields.io/badge/tests-115%20passing-2ea44f)
+![SER on phone audio](https://img.shields.io/badge/phone--line%20emotion%20recall-0.44%E2%86%920.83-2a78d6)
 ![Runs offline](https://img.shields.io/badge/runs-fully%20on%20a%20laptop-orange)
 
 *Built for the VecnaVerse National Level Hackathon · Domain: Cybersecurity ·
@@ -64,13 +65,22 @@ with their sources.
 | Output | One emotion label | Fear / anger / distress / nervousness over time, plus a case file with every detail linked to the audio |
 | Accuracy safeguards | Always gives an answer | Smoothed over windows, compared with the caller's own baseline, **abstains** on poor audio or low confidence |
 | Roles | Everyone treated the same | Operator-confirmed **victim / suspect recording / informant** modes; emotion scoring is **off for suspects** |
-| Urgency | "Fear 0.81" | Priority from **reported facts**; distress is a separate human-safety track that never changes financial priority |
+| Phone audio | Tested on studio clips only | Measured through a simulated phone line on **held-out speakers**; a telephone-adapted head lifts "needs attention" recall from **0.44 to 0.83** |
+| Urgency | "Fear 0.81" | Priority from **reported facts**; sustained voice distress can raise it by **at most one level**, with the reason shown, never for suspects |
 | Scope | One call | **Ring Linker** connects cases by identifier, scam script and (for suspect recordings) voice |
 | Trust | Black box | Evidence for every output, officer verify/correct on every field, encrypted data, hash-chained audit log |
 
 ### Features
 
 **Speech emotion (the core of the PS)**
+
+- **Built and measured for phone audio.** Through a simulated phone line the stock emotion model flags only 44% of
+  callers who need attention. Anvesh's telephone-adapted head, trained on other speakers' clean, phone and noisy
+  audio, flags 83%, with calibrated confidence (calibration error 0.02 vs 0.44). Fully offline, under 1 ms extra.
+  [Results](EVALUATION.md#3-speech-emotion-recognition)
+- **Emotion helps decide who is answered first, and can never accuse anyone.** Sustained high distress on a victim
+  or informant call raises the priority by one level at most; elevated distress only breaks ties. The reason is
+  shown in the assessment and the officer can override it. Suspect recordings are never scored.
 
 - **Live call mode.** Microphone audio streams over a WebSocket. Transcript, emotion and distress update every few
   seconds.
@@ -136,7 +146,7 @@ with their sources.
           ▼
  FastAPI backend ───────────────────────────────────────────────────────────────┐
  │ speech   faster-whisper ASR (Hindi/Hinglish → Roman script)                   │
- │          emotion2vec+ voice emotion · acoustic baseline (pitch, energy, pace) │
+ │          emotion2vec+ embedding → telephone-adapted head · caller baseline    │
  │          ECAPA speaker embeddings (suspects only) · synthetic-voice detector  │
  │ ser      3 s windows → smoothing → fear / anger / distress / nervousness      │
  │          role gating · abstention on silence, noise or low confidence         │
@@ -159,7 +169,7 @@ with their sources.
 | Component | Model / library | Licence |
 |---|---|---|
 | Speech-to-text | faster-whisper `small` (live), `large-v3-turbo` (after the call) | MIT |
-| Voice emotion | emotion2vec+ base (`iic/emotion2vec_plus_base`) | see model card |
+| Voice emotion | emotion2vec+ base (`iic/emotion2vec_plus_base`) + Anvesh telephone-adapted head (`anvesh/data/models/ser_head_telephone.json`, trained on CREMA-D, ODbL) | see model card |
 | Speaker embeddings | SpeechBrain ECAPA-TDNN | Apache-2.0 |
 | Synthetic voice | `MelodyMachine/Deepfake-audio-detection-V2` | see model card |
 | App | FastAPI, SQLAlchemy, Next.js, React, Tailwind | MIT / BSD |
@@ -268,6 +278,7 @@ All settings are optional environment variables.
 | `ANVESH_ENABLE_ASR_FINAL` / `_EMOTION` / `_SPEAKER` / `_SPOOF` | `1` | turn individual models off (`0`) |
 | `ANVESH_TEXT_EMBEDDER` | *(empty)* | e.g. `paraphrase-multilingual-MiniLM-L12-v2` for cross-language script links |
 | `ANVESH_VALIDATED_LANGS` | `en,hi` | languages where the voice distress track may score |
+| `ANVESH_SER_HEAD` | `auto` | telephone-adapted emotion head: `auto` (use it when present), `off` (raw emotion2vec+), or a path to another head file |
 | `ANVESH_MASTER_KEY` | generated in `~/.anvesh/keys` | 32-byte base64 master key (use a secret manager in production) |
 | `ANVESH_SESSION_IDLE_MIN` / `ANVESH_SESSION_MAX_HOURS` | `30` / `12` | session idle timeout and maximum lifetime |
 | `ANVESH_RETENTION_DAYS` | `0` (keep) | erase closed cases older than this at start-up |
@@ -289,9 +300,12 @@ All settings are optional environment variables.
 
 ```bash
 cd backend
-pytest -q                                   # 105 unit and API tests (no models needed)
+pytest -q                                   # 115 unit and API tests (no models needed)
 python eval/run_eval.py                     # Hinglish field extraction: 38/38 on the development set
-python eval/run_ser_eval.py --crema-d PATH  # speech emotion on CREMA-D (needs the emotion model)
+python eval/get_eval_audio.py --crema-all   # CREMA-D clips + speaker demographics (once, ~500 MB)
+python eval/run_ser_eval.py --crema-d eval/audio/crema-d --holdout --limit 800   # studio, phone line, noise
+python eval/run_ser_eval.py --from-cache    # re-derive every table from saved predictions (no model needed)
+python eval/train_ser_head.py --crema-d eval/audio/crema-d   # rebuild the telephone-adapted head (optional)
 python eval/run_ser_eval.py --manifest own_samples.csv   # your own / role-play / YouTube clips
 cd ../frontend && npm run typecheck && npm run build
 ```
@@ -306,6 +320,9 @@ The methodology, results and limitations are in **[EVALUATION.md](EVALUATION.md)
 - Outputs are **indicative signals for human review**, never evidence of honesty, intent or guilt.
 - Emotion and voice-stress scoring are **disabled for suspects** by design. Voice-similarity links are leads only.
 - Financial priority comes from reported facts with transparent rules and does **not** predict recoverability.
+  Voice distress can raise a call by **one level at most**, only when it is sustained, with the reason shown.
+- Emotion accuracy is **measured, not assumed**: on phone-line audio, per speaker group, with calibration, on
+  speakers never used in training ([EVALUATION.md](EVALUATION.md#3-speech-emotion-recognition)).
 - The system **abstains** when audio is poor, the model is unsure or the language has not been validated.
 - Every AI output can be verified or corrected by the officer, and every correction is logged.
 - **Official data, not invented numbers.** `backend/anvesh/data/official/` holds byte-identical copies of six
@@ -342,7 +359,7 @@ backend/
   anvesh/          API, speech models, live SER, NLP, triage, linker, audit, storage
   anvesh/data/     official NCRB / I4C / DoT data with sources.json
   eval/            extraction and speech-emotion evaluation scripts
-  tests/           105 unit, API and security tests
+  tests/           115 unit, API and security tests
 frontend/          Next.js workspace and landing page
 scripts/           Windows setup and start scripts
 docs/screenshots/  images used in this README

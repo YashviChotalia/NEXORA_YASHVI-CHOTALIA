@@ -217,7 +217,8 @@ def health(request: Request, db: Session = Depends(db_session)):
     out = {"ok": True}
     if auth.principal_from_token(db, request.cookies.get(auth.COOKIE)):  # details only for signed-in users
         out.update({"version": app.version, "pipeline": pipeline.PIPELINE_VERSION, "models": M.statuses(),
-                    "validated_languages": list(settings.validated_languages)})
+                    "validated_languages": list(settings.validated_languages),
+                    "live_latency": live_ser.LATENCY.summary()})
     return out
 
 
@@ -839,7 +840,7 @@ async def live(ws: WebSocket, case_id: str):
             try:
                 if item is None:
                     return
-                t0, pcm = item
+                t0, pcm, queued = item
                 x = A.pcm16_to_float(pcm)
                 rms = float(np.sqrt(np.mean(x ** 2))) if len(x) else 0.0
                 started = time.monotonic()
@@ -870,8 +871,11 @@ async def live(ws: WebSocket, case_id: str):
                 if not res["segments"]:
                     hint = ("No speech heard: check that the right microphone is selected and not muted."
                             if rms < 0.004 else "Speech was too unclear to transcribe; ask the caller to repeat.")
+                lag_s = time.monotonic() - queued  # end of the spoken chunk -> transcript and case file on screen
+                if res["segments"]:
+                    live_ser.LATENCY.add("transcript_s", lag_s)
                 await send({"type": "update", "case": detail, "final": False, "hint": hint,
-                            "latency_s": round(took, 1), "backlog": asr_q.qsize()})
+                            "latency_s": round(took, 1), "lag_s": round(lag_s, 1), "backlog": asr_q.qsize()})
             except Exception:  # pragma: no cover - keep the call alive
                 log.exception("live transcription chunk failed")
                 await send({"type": "status", "stage": "error", "message": "One segment could not be transcribed."})
@@ -883,15 +887,19 @@ async def live(ws: WebSocket, case_id: str):
             item = await emo_q.get()
             if item is None:
                 return
-            t0, pcm = item
+            t0, pcm, queued = item
             try:
                 rec = await asyncio.to_thread(tracker.analyse, A.pcm16_to_float(pcm), t0)
+                lag_ms = round(1000 * (time.monotonic() - queued))  # last audio sample in -> signal out
+                if not rec["silent"]:
+                    live_ser.LATENCY.add("emotion_ms", lag_ms)
                 if not rec["silent"]:
                     pending_windows.append({k: rec[k] for k in ("t_start", "t_end", "emotions", "acoustic", "silent",
                                                                 "label", "p")})
                 await send({"type": "emotion", "t": rec["t_end"], "silent": rec["silent"], "label": rec["label"],
                             "p": rec["p"], "arousal": rec["arousal"], "indicators": rec["indicators"],
-                            "model": M.emotion.state if mode != "suspect_recording" else "off"})
+                            "model": M.emotion.state if mode != "suspect_recording" else "off",
+                            "latency_ms": lag_ms})
             except Exception:  # pragma: no cover
                 log.exception("live emotion window failed")
 
@@ -903,7 +911,7 @@ async def live(ws: WebSocket, case_id: str):
     def cut(final: bool = False) -> None:
         nonlocal buf, buf_start
         if buf and (final or len(buf) >= A.SR * 2 * 0.5):
-            asr_q.put_nowait((buf_start, bytes(buf)))
+            asr_q.put_nowait((buf_start, bytes(buf), time.monotonic()))
             buf_start += len(buf) / (A.SR * 2)
             buf = bytearray()
 
@@ -931,7 +939,7 @@ async def live(ws: WebSocket, case_id: str):
                 if emo_since >= int(live_ser.HOP_S * A.SR) * 2 and len(emo_ring) >= win_bytes * 0.8 and not emo_q.full():
                     emo_since = 0
                     t_end = start_offset + len(full) / (A.SR * 2)
-                    emo_q.put_nowait((t_end - len(emo_ring) / (A.SR * 2), bytes(emo_ring)))
+                    emo_q.put_nowait((t_end - len(emo_ring) / (A.SR * 2), bytes(emo_ring), time.monotonic()))
                 secs = len(full) / (A.SR * 2)
                 # synthetic-voice check every ~20 s, only when transcription is not behind (CPU priority)
                 if secs >= voice_busy["next_s"] and not voice_busy["on"] and asr_q.qsize() == 0:

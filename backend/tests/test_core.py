@@ -27,10 +27,42 @@ def test_crisis_escalates_regardless_of_money_while_live():
     assert t.priority == "IMMEDIATE" and t.headline == "Human safety first"
 
 
-def test_emotion_never_drives_financial_priority():
+def test_emotion_never_changes_the_financial_score():
     a = triage.assess("victim", _f(amount_lost=5000, incident_time="2026-10-01T10:00"), NOW, False, False, None)
     b = triage.assess("victim", _f(amount_lost=5000, incident_time="2026-10-01T10:00"), NOW, False, False, "high")
-    assert a.priority == b.priority
+    assert a.financial_score == b.financial_score and a.emotion_adjustment is None
+
+
+def test_high_distress_raises_priority_by_one_level_only():
+    old = _f(amount_lost=5000, incident_time="2026-10-01T10:00")  # STANDARD on facts alone
+    t = triage.assess("victim", old, NOW, False, False, "high", call_age_min=2)
+    assert t.priority == "HIGH" and t.score >= 30
+    assert t.emotion_adjustment["from"] == "STANDARD" and t.emotion_adjustment["to"] == "HIGH"
+    assert any("officer can override" in r for r in t.reasons)
+    mid = triage.assess("victim", _f(amount_lost=5000, incident_time="2026-10-20T10:00"), NOW, False, False, "high",
+                        call_age_min=2)  # HIGH on facts -> at most IMMEDIATE, never more than one step
+    assert mid.emotion_adjustment["from"] == "HIGH" and mid.priority == "IMMEDIATE"
+
+
+def test_elevated_distress_is_only_a_tiebreak_inside_a_level():
+    facts = _f(amount_lost=5000, incident_time="2026-10-01T10:00")
+    a = triage.assess("victim", facts, NOW, False, False, None, call_age_min=2)
+    b = triage.assess("victim", facts, NOW, False, False, "elevated", call_age_min=2)
+    assert a.priority == b.priority and b.score > a.score and b.score < 30
+
+
+def test_distress_never_reorders_suspect_recordings_or_old_calls():
+    s = triage.assess("suspect_recording", {}, NOW, False, False, "high", call_age_min=2)
+    assert s.emotion_adjustment is None and s.priority == "STANDARD"
+    old = triage.assess("victim", _f(amount_lost=5000, incident_time="2026-10-01T10:00"), NOW, False, False, "high",
+                        call_age_min=24 * 60)  # a day after the call the caller's voice then says little about now
+    assert old.emotion_adjustment is None and old.priority == "STANDARD"
+
+
+def test_immediate_cases_are_not_raised_further_by_emotion():
+    t = triage.assess("victim", _f(amount_lost=48000, incident_time="2026-10-24T14:38"), NOW, False, False, "high",
+                      call_age_min=2)
+    assert t.priority == "IMMEDIATE" and t.score == t.financial_score + (t.emotion_adjustment or {}).get("points", 0)
 
 
 def test_suspect_mode_is_a_lead_not_a_finding():

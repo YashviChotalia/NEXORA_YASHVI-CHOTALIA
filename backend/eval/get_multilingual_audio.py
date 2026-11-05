@@ -28,7 +28,11 @@ OUT = ROOT / "eval" / "audio" / "multilingual"
 CLASSES = {"neutral": "neutral", "neu": "neutral", "calm": "neutral", "conversation": "neutral", "normal": "neutral",
            "angry": "angry", "anger": "angry", "ang": "angry",
            "fear": "fearful", "fearful": "fearful", "fea": "fearful", "scared": "fearful",
-           "sad": "sad", "sadness": "sad"}
+           "sad": "sad", "sadness": "sad",
+           # Rasa: plain read and conversational speech is the calm (neutral) reference
+           "book": "neutral", "news": "neutral", "wiki": "neutral", "read": "neutral", "reading": "neutral",
+           "narration": "neutral", "default": "neutral", "plain": "neutral", "conversational": "neutral",
+           "neutral_conversation": "neutral", "conv": "neutral"}
 EMOTION_COLS = ("emotion", "style", "label", "emotion_label", "category")
 LANG_COLS = ("language", "lang", "locale")
 SPEAKER_COLS = ("speaker", "speaker_id", "spk", "actor", "actor_id")
@@ -214,16 +218,20 @@ def rasa(per: int, max_shards: int) -> None:
                 (dest / fn).write_bytes(data)
                 count[lab] += 1
                 rows_out.append({"path": fn, "label": lab, "source": "rasa", "lang": code,
-                                 "speaker": f"{code}-{r.get('gender') or '?'}"})
+                                 "speaker": f"{code}-{r.get('gender') or '?'}", "style": st,
+                                 "text": str(r.get("text") or "").replace("\n", " ").strip()})
         print(f"  {lang:<10} " + "  ".join(f"{c} {count[c]}" for c in ("neutral", "angry", "fearful", "sad")), flush=True)
         _write_manifest(dest, rows_out)
+        (dest / "labels_seen.json").write_text(json.dumps(dict(styles.most_common(50)), indent=1), encoding="utf-8")
+        print("    styles seen so far: " + ", ".join(f"{k} {v}" for k, v in styles.most_common(12)), flush=True)
     (dest / "labels_seen.json").write_text(json.dumps(dict(styles.most_common(50)), indent=1), encoding="utf-8")
     print(f"Rasa: {len(rows_out)} clips from {len({r['lang'] for r in rows_out})} languages in {dest}")
 
 
 def _write_manifest(dest: Path, rows: list[dict]) -> None:
     with open(dest / "manifest.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["path", "label", "source", "lang", "speaker"])
+        w = csv.DictWriter(fh, fieldnames=["path", "label", "source", "lang", "speaker", "style", "text"],
+                           extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)
 
@@ -235,7 +243,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--only", choices=["asr", "rasa", "cameo"], action="append")
     ap.add_argument("--per", type=int, default=20, help="max clips per (language, emotion)")
-    ap.add_argument("--max-shards", type=int, default=4, help="Rasa: parquet parcels read per language at most")
+    ap.add_argument("--max-shards", type=int, default=3, help="Rasa: parquet parcels read per language at most")
     a = ap.parse_args(argv)
     parts = a.only or ["asr", "rasa", "cameo"]
     login()

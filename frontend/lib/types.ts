@@ -45,10 +45,18 @@ export interface VoiceAuth {
   verdict: string; score: number | null; model_score: number | null; cue_score: number | null; model?: string | null;
   cues?: Record<string, number | null>; reasons: string[]; abstain: string[]; advice: string | null; recordings_checked?: number; caller_class?: string;
 }
+/** A warm transfer of the call to a helpline (Tele-MANAS 14416, 112, 181, 1098, 1930). */
+export interface Handoff {
+  id: string; helpline: string; name: string; number: string; reason: string | null;
+  status: "suggested" | "pending" | "connecting" | "connected" | "cancelled" | "dismissed" | "failed";
+  trigger: "auto" | "suggest" | "officer"; mode: string; created_at: string | null; execute_at: string | null;
+  executed_at: string | null; actor: string | null; provider_ref: string | null; detail: string | null;
+}
 export interface CaseDetail extends CaseSummary {
   call_started_at: string; segments: SegmentT[]; fields: CaseField[]; triage: Triage; distress: Distress;
   safety: Safety; tactics: { items?: { key: string; label: string; cues: string[] }[]; note?: string };
   copilot: Prompt[]; recordings: Recording[]; links: LinkT[]; processing?: string | null;
+  handoffs?: Handoff[];
   local_context?: LocalContext | null; voice_auth?: VoiceAuth | null; official_scam_type?: ScamTypeContext | null; scenario?: Scenario | null;
 }
 export interface SourceRef { key?: string; title: string; publisher?: string; report: string; page: string; reference?: string; note?: string; sha256?: string; retrieved?: string }

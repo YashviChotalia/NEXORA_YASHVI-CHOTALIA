@@ -9,6 +9,7 @@ import { CallAudio, type PlayerHandle } from "@/components/CallAudio";
 import { TopBar } from "@/components/Shell";
 import { Empty, ErrorNote, KV, n, Panel, PriorityBadge, SourceNote, StatusTag, Tag } from "@/components/ui";
 import { api } from "@/lib/api";
+import { Handoffs } from "@/components/Handoffs";
 import { inr, languageName, MODE_LABEL, SPEAKER_LABEL, ts } from "@/lib/format";
 import { startLive, type LiveHandle } from "@/lib/live";
 import type { VoiceAuth, CaseDetail, CaseField, Evidence, Health, LinkT, SegmentT } from "@/lib/types";
@@ -59,7 +60,7 @@ function Workspace() {
   };
   const alerts = (p: CaseDetail | null, next: CaseDetail) => {
     if (p) {
-      if (next.safety?.crisis && !p.safety?.crisis) { toast({ tone: "crit", title: "Crisis language", body: next.safety.crisis_message || "" }); beep(); }
+      if (next.safety?.crisis && !p.safety?.crisis) { toast({ tone: "crit", title: "Crisis language", body: (next.handoffs || []).some((h) => h.helpline === "telemanas" && h.status === "pending") ? "Connecting the caller to Tele-MANAS 14416: cancel in the hand-off panel if this is a false alarm." : next.safety.crisis_message || "" }); beep(); }
       if (next.safety?.coercion && !p.safety?.coercion) { toast({ tone: "crit", title: "Possible active coercion", body: next.safety.coercion_message || "" }); beep(); }
       if (next.priority === "IMMEDIATE" && p.priority !== "IMMEDIATE") toast({ tone: "crit", title: "Priority raised to Immediate", body: next.triage?.reasons?.[0] });
       const before = new Set(p.links.map((l) => l.other.id));
@@ -698,6 +699,7 @@ function CaseTabs({ c, run, reload, onPlay }: { c: CaseDetail; run: (p: Promise<
       <div className="scroll-thin space-y-4 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto xl:[&>*:last-child]:flex-1">
       {tab === "overview" && (
         <>
+          {victimLike && <Handoffs caseId={c.id} initial={c.handoffs} />}
           {victimLike ? <Assessment c={c} /> : <RecordingAnalysis c={c} />}
           {victimLike && c.copilot.length > 0 && (
             <section className="panel"><header className="panel-h"><h3 className="panel-t">Ask next</h3><span className="text-xs2 text-fg-3">{c.copilot.length} suggested</span></header><Questions c={c} run={run} /></section>

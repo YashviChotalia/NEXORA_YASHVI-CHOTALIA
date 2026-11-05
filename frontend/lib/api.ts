@@ -4,7 +4,15 @@
  * API client. Authentication is an HttpOnly session cookie set by the API (JavaScript cannot read it).
  * State-changing requests carry the CSRF token, which is kept in memory only, never in storage.
  */
-export const API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+// An empty NEXT_PUBLIC_API_URL means "same origin": the API is served behind the same host as this app
+// (single-container deployment), so requests stay first-party and the SameSite=Strict session cookie is sent.
+export const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
+function wsBase(): string {
+  if (API) return API.replace(/^http/, "ws");
+  const { protocol, host } = window.location;
+  return `${protocol === "https:" ? "wss" : "ws"}://${host}`;
+}
 
 let csrf: string | null = null;
 export function setCsrf(t: string | null) { csrf = t; }
@@ -67,7 +75,7 @@ export const api = {
     return URL.createObjectURL(await r.blob());
   },
   /** The session cookie is sent with the WebSocket handshake; nothing secret goes in the URL. */
-  wsUrl: (caseId: string) => `${API.replace(/^http/, "ws")}/ws/cases/${encodeURIComponent(caseId)}/live`,
+  wsUrl: (caseId: string) => `${wsBase()}/ws/cases/${encodeURIComponent(caseId)}/live`,
 };
 
 export const authApi = {

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
-const api = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+// empty = API on the same origin (single-container deployment); 'self' then covers both https and wss
+const api = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const ws = api.replace(/^http/, "ws");
 const dev = process.env.NODE_ENV !== "production";
 
@@ -10,7 +11,7 @@ const csp = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "media-src 'self' blob:",
-  `connect-src 'self' ${api} ${ws}${dev ? " ws://localhost:3000" : ""}`,
+  `connect-src 'self'${api ? ` ${api} ${ws}` : ""}${dev ? " ws://localhost:3000" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'none'",

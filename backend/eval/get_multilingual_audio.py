@@ -165,7 +165,7 @@ def _to_16k(data: bytes) -> bytes | None:
     return A.to_wav_bytes(x) if len(x) >= A.SR // 2 else None
 
 
-def rasa(per: int, max_shards: int) -> None:
+def rasa(per: int, max_shards: int, only_lang: str | None = None) -> None:
     """A small balanced sample of every Rasa language: up to `per` clips per emotion, reading a few parquet
     parcels spread across each language (streamed, nothing large is stored) and stopping once all 4 are full."""
     from datasets import Audio, load_dataset
@@ -173,11 +173,8 @@ def rasa(per: int, max_shards: int) -> None:
     fs = HfFileSystem()
     dest = OUT / "rasa"
     dest.mkdir(parents=True, exist_ok=True)
-    for old in dest.glob("*"):
-        old.unlink()
-    langs = sorted(p.split("/")[-1] for p in fs.ls("datasets/ai4bharat/Rasa", detail=False)
-                   if fs.isdir(p) and not p.split("/")[-1].startswith("."))
-    print(f"Rasa languages: {len(langs)} {langs}", flush=True)
+    langs = [only_lang] if only_lang else sorted(p.split("/")[-1] for p in fs.ls("datasets/ai4bharat/Rasa", detail=False)
+                                                 if fs.isdir(p) and not p.split("/")[-1].startswith("."))
     rows_out, styles = [], Counter()
     for lang in langs:
         shards = sorted(fs.glob(f"datasets/ai4bharat/Rasa/{lang}/*.parquet"))
@@ -221,15 +218,54 @@ def rasa(per: int, max_shards: int) -> None:
                                  "speaker": f"{code}-{r.get('gender') or '?'}", "style": st,
                                  "text": str(r.get("text") or "").replace("\n", " ").strip()})
         print(f"  {lang:<10} " + "  ".join(f"{c} {count[c]}" for c in ("neutral", "angry", "fearful", "sad")), flush=True)
-        _write_manifest(dest, rows_out)
+        _write_manifest(dest, rows_out, name=f"manifest_{lang.lower()}.csv" if only_lang else "manifest.csv")
         (dest / "labels_seen.json").write_text(json.dumps(dict(styles.most_common(50)), indent=1), encoding="utf-8")
         print("    styles seen so far: " + ", ".join(f"{k} {v}" for k, v in styles.most_common(12)), flush=True)
     (dest / "labels_seen.json").write_text(json.dumps(dict(styles.most_common(50)), indent=1), encoding="utf-8")
     print(f"Rasa: {len(rows_out)} clips from {len({r['lang'] for r in rows_out})} languages in {dest}")
 
 
-def _write_manifest(dest: Path, rows: list[dict]) -> None:
-    with open(dest / "manifest.csv", "w", newline="", encoding="utf-8") as fh:
+def rasa_all(per: int, max_shards: int, timeout_s: float = 420.0) -> None:
+    """Every Rasa language in its own child process with a time limit, so one stalled download cannot hang the
+    run; finished languages are kept and skipped; all per-language lists are merged into manifest.csv."""
+    import subprocess
+    from huggingface_hub import HfFileSystem
+    fs = HfFileSystem()
+    dest = OUT / "rasa"
+    dest.mkdir(parents=True, exist_ok=True)
+    langs = sorted(p.split("/")[-1] for p in fs.ls("datasets/ai4bharat/Rasa", detail=False)
+                   if fs.isdir(p) and not p.split("/")[-1].startswith("."))
+    print(f"Rasa languages: {len(langs)} {langs}", flush=True)
+    old = dest / "manifest.csv"
+    if old.exists():  # split an earlier combined list into per-language lists so those languages are kept
+        by: dict[str, list[dict]] = {}
+        for r in csv.DictReader(open(old, encoding="utf-8")):
+            by.setdefault(r["lang"], []).append(r)
+        for code, rs in by.items():
+            if not (dest / f"manifest_{code}.csv").exists() and len(rs) >= 4 * per:
+                _write_manifest(dest, rs, name=f"manifest_{code}.csv")
+    for lang in langs:
+        part = dest / f"manifest_{lang.lower()}.csv"
+        if part.exists() and sum(1 for _ in open(part, encoding="utf-8")) > 4 * per:
+            print(f"  {lang:<10} already downloaded", flush=True)
+            continue
+        for attempt in (1, 2):
+            try:
+                subprocess.run([sys.executable, __file__, "--rasa-one", lang, "--per", str(per),
+                                "--max-shards", str(max_shards)], timeout=timeout_s, check=False)
+                break
+            except subprocess.TimeoutExpired:
+                print(f"  {lang:<10} timed out after {timeout_s:.0f}s (attempt {attempt}); "
+                      + ("retrying" if attempt == 1 else "skipping"), flush=True)
+    rows = []
+    for part in sorted(dest.glob("manifest_*.csv")):
+        rows += list(csv.DictReader(open(part, encoding="utf-8")))
+    _write_manifest(dest, rows)
+    print(f"Rasa: {len(rows)} clips from {len({r['lang'] for r in rows})} languages in {dest}", flush=True)
+
+
+def _write_manifest(dest: Path, rows: list[dict], name: str = "manifest.csv") -> None:
+    with open(dest / name, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=["path", "label", "source", "lang", "speaker", "style", "text"],
                            extrasaction="ignore")
         w.writeheader()
@@ -238,13 +274,18 @@ def _write_manifest(dest: Path, rows: list[dict]) -> None:
 
 def main(argv=None) -> int:
     log = ROOT.parent / "logs" / "multilingual.log"
-    log.write_text("", encoding="utf-8")
+    if "--rasa-one" not in (argv if argv is not None else sys.argv):
+        log.write_text("", encoding="utf-8")  # a fresh log per run; child processes append to it
     sys.stdout = _Tee(sys.stdout, log)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--only", choices=["asr", "rasa", "cameo"], action="append")
     ap.add_argument("--per", type=int, default=20, help="max clips per (language, emotion)")
     ap.add_argument("--max-shards", type=int, default=3, help="Rasa: parquet parcels read per language at most")
+    ap.add_argument("--rasa-one", help=argparse.SUPPRESS)  # internal: one language in a child process
     a = ap.parse_args(argv)
+    if a.rasa_one:
+        rasa(a.per, a.max_shards, only_lang=a.rasa_one)
+        return 0
     parts = a.only or ["asr", "rasa", "cameo"]
     login()
     failed = []
@@ -253,7 +294,7 @@ def main(argv=None) -> int:
             if part == "asr":
                 asr()
             elif part == "rasa":
-                rasa(a.per, a.max_shards)
+                rasa_all(a.per, a.max_shards)
             elif part == "cameo":
                 _save("amu-cai/CAMEO", a.per, None, lang_from_config=False)
         except Exception as e:

@@ -16,3 +16,8 @@ Write-Host "Starting downloads (you will be asked for your token once if you are
 & $py eval\get_multilingual_audio.py @args   # the script writes logs\multilingual.log itself
 Write-Host ""
 Write-Host "Log saved to logs\multilingual.log. Done."
+
+Write-Host ""
+Write-Host "Pushing the ser-telephone-head branch to GitHub ..."
+Set-Location (Join-Path $PSScriptRoot "..")
+git push -u origin ser-telephone-head

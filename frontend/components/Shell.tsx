@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, authApi } from "@/lib/api";
 import { OPEN_PATHS, PUBLIC_PATHS, SessionProvider, useSession } from "@/lib/session";
+import { IncomingCall } from "@/components/IncomingCall";
 import type { Health } from "@/lib/types";
 import { useWorkspace, workspaceChosen } from "@/lib/workspace";
 
@@ -36,7 +37,8 @@ function Frame({ children }: { children: React.ReactNode }) {
   const { me, ready, can } = useSession();
   if ([...PUBLIC_PATHS, ...OPEN_PATHS].some((p) => path.startsWith(p))) return <>{children}</>;
   if (!ready || !me) return <div className="min-h-screen bg-bg" />;
-  return <Chrome can={can} me={me}>{children}</Chrome>;
+  if (path.startsWith("/call")) return <>{children}</>;  // the caller's phone: no officer chrome
+  return <Chrome can={can} me={me}>{can("case:write") && <IncomingCall />}{children}</Chrome>;
 }
 
 function Chrome({ children, can, me }: { children: React.ReactNode; can: (p: string) => boolean; me: NonNullable<ReturnType<typeof useSession>["me"]> }) {

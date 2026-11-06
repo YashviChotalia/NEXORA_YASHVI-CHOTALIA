@@ -57,6 +57,8 @@ export interface CaseDetail extends CaseSummary {
   safety: Safety; tactics: { items?: { key: string; label: string; cues: string[] }[]; note?: string };
   copilot: Prompt[]; recordings: Recording[]; links: LinkT[]; processing?: string | null;
   handoffs?: Handoff[];
+  /** a live call is streaming into this case right now (possibly from another device) */
+  live?: boolean;
   local_context?: LocalContext | null; voice_auth?: VoiceAuth | null; official_scam_type?: ScamTypeContext | null; scenario?: Scenario | null;
 }
 export interface SourceRef { key?: string; title: string; publisher?: string; report: string; page: string; reference?: string; note?: string; sha256?: string; retrieved?: string }

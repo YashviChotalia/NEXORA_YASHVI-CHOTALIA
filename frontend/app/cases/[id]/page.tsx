@@ -86,6 +86,14 @@ function Workspace() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveOn, id]);
+  // A call streamed from another device (the caller page, or a second console): follow it live here too
+  const following = !!c?.live || search.get("answered") === "1";  // answered from the ringing banner
+  useEffect(() => {
+    if (!following || liveOn) return;
+    const t = setInterval(() => { api.get<CaseDetail>(`/api/cases/${id}`).then((x) => onLive(x)).catch(() => {}); }, 2000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [following, liveOn, id]);
 
   const run = async (pr: Promise<CaseDetail>) => {
     try { const x = await pr; prev.current = x; setC(x); setErr(null); } catch (e: any) { setErr(e.message); }

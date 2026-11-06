@@ -174,6 +174,7 @@ def case_detail(db: Session, case: Case, p: Principal | None = None) -> dict:
                          key=lambda f: list(FIELD_LABELS).index(f["name"]) if f["name"] in FIELD_LABELS else 99),
         "triage": case.triage, "distress": case.distress, "safety": case.safety, "tactics": case.tactics,
         "handoffs": handoff_api.for_case(db, case.id),
+        "live": case.id in handoff.LIVE_CASES,
         "copilot": case.copilot,
         "local_context": official.context_for(case.district),
         "official_scam_type": official.playbook_context(case.playbook_key),
@@ -753,6 +754,48 @@ def dossier(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), 
                       "audit_events_checked": head.get("events_checked"), "audit_head": head.get("head"),
                       "pipeline": pipeline.model_version()},
     }
+
+
+# --- caller dialer: a call placed from the /call page rings on every officer console ---------------------
+INCOMING: dict[str, dict] = {}  # case id -> {"at": monotonic time, "answered_by": None | actor}
+RING_S = 300
+
+
+class DialIn(BaseModel):
+    number: str = PField(default="1930", pattern=r"^[0-9]{3,12}$")
+    language: str | None = PField(default=None, pattern="^(auto|[a-z]{2,3})$")
+
+
+@app.post("/api/calls", status_code=201)
+def place_call(body: DialIn, db: Session = Depends(db_session), p: Principal = Depends(CASE_WRITE)):
+    """The caller page dials the helpline: a new victim case is opened and rings on the officer consoles. The
+    caller's audio then streams over the same live WebSocket an officer's microphone would use."""
+    case = _new_case(db, p, CaseIn(mode="victim", channel="helpline", caller_label=f"Incoming call to {body.number}",
+                                   language=body.language), training=False)
+    INCOMING[case.id] = {"at": time.monotonic(), "answered_by": None, "number": body.number}
+    audit.record(db, p.actor, "call.placed", case.id, {"number": body.number})
+    return {"id": case.id}
+
+
+@app.get("/api/calls/incoming")
+def incoming_calls(p: Principal = Depends(CASE_READ)):
+    now = time.monotonic()
+    for k in [k for k, v in INCOMING.items() if now - v["at"] > RING_S]:
+        INCOMING.pop(k, None)
+    return [{"id": k, "number": v["number"], "seconds": round(now - v["at"]), "live": k in handoff.LIVE_CASES}
+            for k, v in INCOMING.items() if v["answered_by"] is None]
+
+
+@app.post("/api/calls/{case_id}/answer")
+def answer_call(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), p: Principal = Depends(CASE_WRITE)):
+    call = INCOMING.get(case_id)
+    if call is None:
+        raise HTTPException(404, "No ringing call with this id")
+    if call["answered_by"] and call["answered_by"] != p.actor:
+        raise HTTPException(409, "Another officer already answered this call")
+    call["answered_by"] = p.actor
+    audit.record(db, p.actor, "call.answered", case_id, {"after_s": round(time.monotonic() - call["at"])})
+    return {"id": case_id, "answered_by": p.actor}
 
 
 @app.get("/api/evidence")

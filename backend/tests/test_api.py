@@ -127,3 +127,20 @@ def test_evidence_page_numbers_come_from_the_results_files():
     phone = next(r for r in e["ser"]["rows"] if r["condition"].startswith("Phone line"))
     assert 0 < phone["accuracy_all"] < 1 and phone["ece"] is not None
     assert 0 < e["calls"]["auc"] <= 1 and e["languages"]["languages"] >= 20
+
+
+def test_a_dialled_call_rings_once_and_is_answered_by_one_officer():
+    from helpers import make_client as _mk
+    r = client.post("/api/calls", json={"number": "1930"})
+    assert r.status_code == 201, r.text
+    cid = r.json()["id"]
+    ringing = client.get("/api/calls/incoming").json()
+    assert any(x["id"] == cid for x in ringing)
+    other = _mk()
+    assert other.post(f"/api/calls/{cid}/answer").status_code == 200
+    assert client.post(f"/api/calls/{cid}/answer").status_code == 409  # already taken
+    assert not any(x["id"] == cid for x in client.get("/api/calls/incoming").json())
+    case = client.get(f"/api/cases/{cid}").json()
+    assert case["mode"] == "victim" and case["live"] is False
+    acts = {e["action"] for e in client.get(f"/api/audit?case_id={cid}").json()}
+    assert {"call.placed", "call.answered"} <= acts

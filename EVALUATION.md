@@ -368,7 +368,13 @@ plus English (CREMA-D, sections 3–3b).
 | Not measured | abstains | none |
 
 Words-based safety signals (crisis, coercion, danger) and the automatic helpline hand-off do not depend on this: they
-work on the transcript. Their phrase lists cover Hindi, Hinglish and English; other languages rely on the officer.
+work on the transcript. The crisis and danger lists cover Hindi, Hinglish and English and, in their own scripts,
+Bengali, Assamese, Marathi, Nepali, Gujarati, Punjabi, Odia, Tamil, Telugu, Kannada, Malayalam and Urdu
+(`anvesh/nlp/safety_indic.py`). Tests check that one crisis sentence per language is caught and that ordinary
+fraud-complaint sentences in five of these languages raise nothing. The non-Hindi lists have **not** been reviewed by
+native speakers or measured on real calls, which is why the transfer they start can always be cancelled. The
+smaller Indian languages (Bodo, Dogri, Kashmiri, Konkani, Maithili, Manipuri, Sanskrit, Santali, Sindhi) still rely on
+the officer.
 
 ### Limits
 

@@ -102,6 +102,9 @@ with their sources.
   nothing: the officer sees *"Connecting to Tele-MANAS in 10 s"* with **Cancel**, and if nobody cancels the
   helpline joins as a **three-way call**, so the officer stays on until the counsellor takes over. Women's helpline
   **181**, Childline **1098** and **1930** are one-click suggestions. Every step is in the audit log.
+  The crisis and danger words exist in **13 Indian languages plus English**, each in its own script (Hindi, Hinglish, Bengali,
+  Assamese, Marathi, Nepali, Gujarati, Punjabi, Odia, Tamil, Telugu, Kannada, Malayalam, Urdu), so a Tamil caller
+  saying *"வாழ விருப்பமில்லை"* reaches Tele-MANAS the same way.
 
 **Languages**
 
@@ -126,8 +129,12 @@ with their sources.
 - **Synthetic-voice check.** A deepfake-audio classifier plus acoustic cues (jitter, shimmer, noise floor, rhythm)
   flag cloned or replayed audio as *likely real / needs verification / likely synthetic*, never as proof.
 - **Official context.** NCRB, I4C and DoT statistics from data.gov.in, verified by SHA-256 at start-up.
+- **Case dossier (PDF).** One printable page per case: priority and why, safety signals and hand-offs, every fact
+  with the words it came from, voice signals marked indicative, the full transcript in its own script, recording
+  hashes and the case's audit trail. Its SHA-256 fingerprint goes into the audit log, so a printed copy can be
+  matched to the log.
 - **Tamper-evident audit.** Every view, AI output and human correction goes into an HMAC-signed hash chain, with
-  one-click verification.
+  one-click verification. Writers are serialised, so concurrent requests cannot fork the chain (tested).
 
 ---
 
@@ -331,7 +338,7 @@ All settings are optional environment variables.
 
 ```bash
 cd backend
-pytest -q                                   # 117 unit and API tests (no models needed)
+pytest -q                                   # 142 unit and API tests (no models needed)
 python eval/run_eval.py                     # Hinglish field extraction: 38/38 on the development set
 python eval/get_eval_audio.py --crema-all   # CREMA-D clips + speaker demographics (once, ~500 MB)
 python eval/run_ser_eval.py --crema-d eval/audio/crema-d --holdout --limit 800   # studio, phone line, noise

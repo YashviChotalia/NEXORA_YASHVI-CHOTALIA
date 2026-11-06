@@ -54,6 +54,8 @@ what we protect, from whom, how, and how it is tested.
 
 **Integrity and accountability**
 - The audit log is a hash chain signed with HMAC-SHA256, so someone with write access to the database alone cannot edit a row and recompute a valid chain. Events from before keying are verified with SHA-256 and reported as such.
+- Audit writers are serialised inside the process (lock taken before the last event is read, released when the transaction ends), so two simultaneous requests cannot both link to the same event and fork the chain. A multi-process PostgreSQL deployment would need a database advisory lock instead.
+- The case dossier (`/api/cases/{id}/dossier`) is marked confidential, is written to the audit log with the SHA-256 fingerprint of its content, and needs the same case-read permission as the case itself.
 - The audit log never contains personal data: sensitive values are replaced with a keyed fingerprint, so it proves what changed and who changed it without becoming a second copy of the case file.
 - Access logging: case views (at most once per officer per case per 10 minutes, noting when an informant identity was revealed), evidence playback, report generation, sign-ins, failed sign-ins, lockouts, user and role changes, integrity failures and erasures.
 - Complaint drafts carry a confidentiality marking and the name of the officer who generated them.

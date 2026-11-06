@@ -263,15 +263,15 @@ foreign languages (`anvesh/speech/indic_asr.py`). This section measures what tha
 | **AI4Bharat Rasa** (CC-BY-4.0) | 22 Indian languages; acted expressive speech by 1–2 voice artists per language | 20 clips per emotion and language (neutral = its plain read / conversational styles) |
 | **CAMEO** (13 corpora, research licences) | Bengali, French, German, Italian, Polish, Russian, Spanish (English left out: it is CREMA-D) | 20 clips per emotion and language |
 
-Downloaded by `eval/get_multilingual_audio.py` (balanced, streamed sample; no audio in the repository). Results below
-cover the languages downloaded so far; the remaining Rasa languages are added by re-running the same scripts.
+Downloaded by `eval/get_multilingual_audio.py` (balanced, streamed sample; no audio in the repository). All 22 Rasa
+languages and 7 CAMEO languages are included.
 
 ### Language detection and routing
 
 Whisper alone recognises an Indian language correctly only about half the time (it hears Assamese as Bengali and
 Gujarati as Hindi, and has no model at all for 7 of the 22). The app therefore lets IndicConformer decide which
-Indian language it is (`route_language`). The rule was chosen on the first 8 languages and then checked on the next 6,
-which it had not seen. Each clip is a few seconds long; a call has more speech, and the officer can also set the
+Indian language it is (`route_language`). The rule was chosen on the first 8 languages (alphabetical) and then checked on
+the other 14, which it had not seen. Each clip is a few seconds long; a call has more speech, and the officer can also set the
 language at intake.
 
 | Language | Code | Clips | Whisper alone | IndicConformer alone | IndicConformer top 3 | **Anvesh routing** | Most common Anvesh mistake |
@@ -286,11 +286,19 @@ language at intake.
 | Kashmiri ¹ | ks | 80 | 0% | 81% | 99% | **78%** | Urdu |
 | Konkani ¹ | kok | 80 | 0% | 99% | 100% | **99%** | Marathi |
 | Maithili ¹ | mai | 80 | 0% | 90% | 99% | **48%** | Hindi |
-| Malayalam | ml | 80 | 98% | 99% | 100% | **98%** | Telugu |
+| Malayalam | ml | 80 | 98% | 99% | 100% | **98%** | en |
 | Manipuri ¹ | mni | 80 | 0% | 100% | 100% | **69%** | en |
 | Marathi | mr | 80 | 92% | 99% | 100% | **95%** | Hindi |
 | Nepali | ne | 80 | 99% | 98% | 100% | **98%** | Bengali |
-| **All** | | 1116 | 46% | 93% | 99% | **89%** | |
+| Odia ¹ | or | 80 | 0% | 100% | 100% | **100%** | - |
+| Punjabi | pa | 80 | 76% | 100% | 100% | **80%** | Hindi |
+| Sanskrit | sa | 80 | 0% | 100% | 100% | **92%** | en |
+| Santali ¹ | sat | 80 | 0% | 100% | 100% | **99%** | Hindi |
+| Sindhi | sd | 80 | 0% | 94% | 96% | **86%** | Hindi |
+| Tamil | ta | 80 | 99% | 100% | 100% | **100%** | - |
+| Telugu | te | 80 | 99% | 99% | 100% | **99%** | Kannada |
+| Urdu | ur | 80 | 0% | 71% | 99% | **2%** | Hindi |
+| **All** | | 1756 | 42% | 94% | 99% | **87%** | |
 
 ¹ Whisper has no model for this language.
 
@@ -304,50 +312,58 @@ For each language, the emotion head is trained on English (CREMA-D training spea
 then scored on that language only, through the simulated phone line, answering every clip. This is the honest estimate
 for a caller whose language (and voice) the system has never heard. `eval/multilingual_head.py lolo`.
 
-| Average over held-out languages (20) | Accuracy | Attention recall | False alarms on neutral |
+| Average over held-out languages (28) | Accuracy | Attention recall | False alarms on neutral |
 |---|---|---|---|
-| Raw emotion2vec+ | 36.9% | 0.36 | 11.0% |
-| English-trained head (shipped) | 42.6% | 0.66 | 31.5% |
-| Multilingual head (research) | 47.8% | 0.76 | 44.4% |
+| Raw emotion2vec+ | 35.3% | 0.31 | 8.8% |
+| English-trained head (shipped) | 41.8% | 0.63 | 31.8% |
+| Multilingual head (research) | 48.4% | 0.74 | 42.9% |
 
 Per language, phone line (raw / multilingual): accuracy · attention recall · false alarms on neutral
 
 | Held-out language | Accuracy | Attention recall | False alarms |
 |---|---|---|---|
-| assamese | 28% / 48% | 0.15 / 0.58 | 0% / 20% |
-| bengali | 50% / 63% | 0.79 / 0.94 | 18% / 30% |
-| bodo | 30% / 54% | 0.09 / 0.57 | 0% / 5% |
-| dogri | 22% / 29% | 0.05 / 0.30 | 20% / 40% |
+| assamese | 28% / 52% | 0.15 / 0.65 | 0% / 20% |
+| bengali | 50% / 65% | 0.79 / 0.95 | 18% / 32% |
+| bodo | 30% / 55% | 0.09 / 0.64 | 0% / 10% |
+| dogri | 22% / 30% | 0.05 / 0.32 | 20% / 40% |
 | french | 65% / 68% | 0.80 / 0.97 | 25% / 60% |
-| german | 68% / 87% | 0.48 / 0.90 | 0% / 0% |
-| gujarati | 22% / 44% | 0.30 / 0.67 | 15% / 35% |
-| hindi | 32% / 34% | 0.43 / 0.87 | 5% / 70% |
-| italian | 60% / 61% | 0.78 / 0.98 | 20% / 50% |
+| german | 68% / 85% | 0.48 / 0.93 | 0% / 6% |
+| gujarati | 22% / 44% | 0.30 / 0.70 | 15% / 40% |
+| hindi | 32% / 32% | 0.43 / 0.87 | 5% / 80% |
+| italian | 60% / 64% | 0.78 / 0.98 | 20% / 50% |
 | kannada | 28% / 34% | 0.10 / 0.63 | 5% / 55% |
-| kashmiri | 29% / 38% | 0.30 / 0.83 | 15% / 85% |
-| konkani | 35% / 48% | 0.15 / 0.73 | 0% / 65% |
-| maithili | 25% / 32% | 0.10 / 0.38 | 5% / 30% |
-| malayalam | 27% / 51% | 0.03 / 0.53 | 0% / 11% |
-| manipuri | 34% / 51% | 0.32 / 0.83 | 5% / 30% |
-| marathi | 31% / 44% | 0.43 / 0.92 | 20% / 65% |
-| nepali | 32% / 44% | 0.15 / 0.75 | 0% / 40% |
-| polish | 38% / 39% | 0.51 / 0.86 | 10% / 55% |
-| russian | 40% / 42% | 0.70 / 0.94 | 33% / 78% |
-| spanish | 42% / 47% | 0.54 / 0.92 | 25% / 65% |
+| kashmiri | 29% / 44% | 0.30 / 0.85 | 15% / 85% |
+| konkani | 35% / 51% | 0.15 / 0.77 | 0% / 65% |
+| maithili | 25% / 31% | 0.10 / 0.40 | 5% / 30% |
+| malayalam | 27% / 51% | 0.03 / 0.58 | 0% / 11% |
+| manipuri | 34% / 50% | 0.32 / 0.85 | 5% / 35% |
+| marathi | 31% / 45% | 0.43 / 0.93 | 20% / 65% |
+| nepali | 32% / 44% | 0.15 / 0.72 | 0% / 40% |
+| odia | 34% / 49% | 0.40 / 0.93 | 10% / 45% |
+| polish | 38% / 38% | 0.51 / 0.86 | 10% / 60% |
+| punjabi | 31% / 41% | 0.08 / 0.37 | 0% / 15% |
+| russian | 40% / 43% | 0.70 / 0.94 | 33% / 78% |
+| sanskrit | 34% / 52% | 0.25 / 0.73 | 5% / 35% |
+| santali | 31% / 40% | 0.12 / 0.42 | 5% / 25% |
+| sindhi | 26% / 39% | 0.02 / 0.57 | 0% / 30% |
+| spanish | 42% / 48% | 0.54 / 0.90 | 25% / 60% |
+| tamil | 29% / 59% | 0.07 / 0.60 | 0% / 15% |
+| telugu | 35% / 50% | 0.28 / 0.92 | 0% / 70% |
+| urdu | 29% / 52% | 0.12 / 0.75 | 5% / 45% |
 
 **What this means.** Voice emotion transfers poorly to Indian languages: the raw model is close to chance (25%) on
 many of them. Training on more languages roughly doubles how many distressed callers are flagged, but false alarms
-on calm speech rise to about 44%. That is not good enough to let a voice reading change a call's priority.
+on calm speech rise to about 43%. That is not good enough to let a voice reading change a call's priority.
 
 ### What the app does with this (decided by a rule fixed before the run)
 
 A language is **validated** for the voice distress track when, held out of training, on phone audio the head flags
-at least 70% of distressed clips with at most 35% false alarms. Passed: **Bengali, German, Manipuri**,
+at least 70% of distressed clips with at most 35% false alarms. Passed: **Bengali, German, Manipuri, Sanskrit**,
 plus English (CREMA-D, sections 3–3b).
 
 | Language status | Voice distress | Effect on priority |
 |---|---|---|
-| Validated: English, Bengali, Manipuri | shown | can raise one level (section 3b rules) |
+| Validated: English, Bengali, Manipuri, Sanskrit | shown | can raise one level (section 3b rules) |
 | Measured, not validated: Hindi and the other tested languages | shown, marked *not validated for this language* | **none** |
 | Not measured | abstains | none |
 

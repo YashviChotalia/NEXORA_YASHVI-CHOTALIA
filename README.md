@@ -106,10 +106,10 @@ with their sources.
 **Languages**
 
 - **Speech-to-text in 22 Indian languages** (AI4Bharat IndicConformer) plus English, Hindi/Hinglish and foreign
-  languages (Whisper). The officer can set the caller's language at intake, or Anvesh detects it: on 14 Indian
-  languages from AI4Bharat Rasa it picks the right one **89%** of the time (Whisper alone: 46%).
+  languages (Whisper). The officer can set the caller's language at intake, or Anvesh detects it: on all 22 Indian
+  languages from AI4Bharat Rasa it picks the right one **87%** of the time (Whisper alone: 42%).
 - **Voice emotion is only trusted where it was measured.** On languages it has never heard, voice emotion is much
-  weaker. English, Bengali and Manipuri passed a test fixed in advance and may change priority; Hindi and the other
+  weaker. English, Bengali, Manipuri and Sanskrit passed a test fixed in advance and may change priority; Hindi and the other
   tested languages show the voice reading as *not validated*, with no effect on priority.
   [Details](EVALUATION.md#5-languages-speech-to-text-language-detection-and-emotion-beyond-english)
 

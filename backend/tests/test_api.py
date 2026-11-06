@@ -105,3 +105,17 @@ def test_radar_groups_by_scam_type():
     _say(c["id"], "bijli wale ne bola light connection kat jayega, 5000 rupaye bheje")
     r = client.get("/api/radar").json()
     assert any(g["key"] == "utility" and g["last_24h"] >= 1 and "Thane" in g["districts"] for g in r["groups"])
+
+
+def test_dossier_has_everything_and_its_fingerprint_is_in_the_audit_log():
+    c = _new(district="Pune")
+    _say(c["id"], "48000 rupaye kat gaye ramesh at the rate okaxis ko, HDFC se, 2:10 baje")
+    d = client.get(f"/api/cases/{c['id']}/dossier").json()
+    for k in ("case", "fields", "triage", "distress", "safety", "handoffs", "segments", "links", "recordings",
+              "trail", "integrity", "disclaimer", "classification"):
+        assert k in d, k
+    assert d["segments"] and d["fields"] and d["case"]["id"] == c["id"]
+    assert len(d["integrity"]["fingerprint_sha256"]) == 64 and d["integrity"]["audit_chain_ok"] is True
+    assert "guilt" in d["disclaimer"]
+    log = client.get(f"/api/audit?case_id={c['id']}").json()
+    assert any(e["action"] == "dossier.generated" for e in log)

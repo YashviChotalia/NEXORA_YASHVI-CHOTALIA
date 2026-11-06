@@ -710,6 +710,46 @@ def report(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), p
     }
 
 
+@app.get("/api/cases/{case_id}/dossier")
+def dossier(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), p: Principal = Depends(CASE_READ)):
+    """Everything about one case on one printable page (the browser saves it as PDF): facts with their evidence,
+    priority and why, voice distress (indicative), safety signals and helpline hand-offs, the full transcript,
+    linked cases, recording hashes and this case's audit trail. The SHA-256 fingerprint of the content is
+    written to the audit log, so a printed copy can later be checked against the log."""
+    import hashlib
+    import json
+
+    case = _get(db, case_id)
+    d = case_detail(db, case, p)
+    trail = db.execute(select(AuditEvent).where(AuditEvent.case_id == case.id).order_by(AuditEvent.id)).scalars()
+    body = {
+        "case": {k: d.get(k) for k in ("id", "mode", "channel", "caller_label", "district", "created_at",
+                                        "call_started_at", "priority", "priority_score", "playbook", "language",
+                                        "amount", "identity_protected", "synthetic", "intake_seconds")},
+        "fields": d["fields"], "triage": d["triage"], "distress": d["distress"], "safety": d["safety"],
+        "handoffs": d["handoffs"], "segments": d["segments"], "links": d["links"], "recordings": d["recordings"],
+        "voice_auth": d["voice_auth"], "tactics": d["tactics"],
+        "trail": [{"id": e.id, "ts": e.ts.isoformat() + "Z", "actor": e.actor, "action": e.action, "hash": e.hash}
+                  for e in trail],
+    }
+    fingerprint = hashlib.sha256(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+    head = audit.verify(db)
+    audit.record(db, p.actor, "dossier.generated", case.id, {"sha256": fingerprint})
+    return {
+        **body,
+        "title": f"Case dossier · {case.id}",
+        "classification": "CONFIDENTIAL · law-enforcement use only · contains personal data. "
+                          "Share only with authorised officers.",
+        "disclaimer": "Decision support, not evidence. Transcripts can contain recognition errors and must be "
+                      "checked against the recording. Voice-emotion and distress readings are indicative signals "
+                      "about the caller's state on the call; they say nothing about honesty, intent or guilt.",
+        "generated_by": p.actor, "generated_at": utcnow().isoformat() + "Z",
+        "integrity": {"fingerprint_sha256": fingerprint, "audit_chain_ok": head["ok"],
+                      "audit_events_checked": head.get("events_checked"), "audit_head": head.get("head"),
+                      "pipeline": pipeline.model_version()},
+    }
+
+
 class EraseIn(BaseModel):
     reason: str = PField(min_length=5, max_length=200)
 

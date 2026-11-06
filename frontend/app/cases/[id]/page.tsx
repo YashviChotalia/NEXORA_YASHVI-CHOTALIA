@@ -109,6 +109,7 @@ function Workspace() {
           <IntakeTimer c={c} />
           {victimLike && <button onClick={doReadback} className="btn-secondary"><Volume2 size={14} /> Read back</button>}
           <button onClick={() => setReport(true)} className="btn-secondary"><FileText size={14} /> Draft complaint</button>
+          <Link href={`/cases/${c.id}/dossier`} className="btn-secondary" title="Whole case on one printable page: save it as PDF"><FileText size={14} /> Dossier (PDF)</Link>
           {!c.intake_seconds && <button onClick={() => run(api.post(`/api/cases/${c.id}/complete`))} className="btn-primary"><Check size={14} /> Complete intake</button>}
         </>} />
 

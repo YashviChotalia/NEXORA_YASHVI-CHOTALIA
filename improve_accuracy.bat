@@ -9,5 +9,5 @@ echo Step 2/3: computing embeddings in parallel (about 20-40 min, keep this wind
 echo Step 3/3: training and testing ...
 .venv\Scripts\python.exe eval\train_ser_head_v2.py fit >> ..\logs\accuracy.log 2>&1
 echo.
-echo Done. Log: logs\accuracy.log  -  done
+echo Done. Log: logs\accuracy.log
 pause

@@ -238,6 +238,21 @@ is often *elevated* too: angry callers are not "distressed" by this definition, 
 - The simulated calls are short (10 sentences, about 25 s). Real calls are longer, which helps the sustained rules.
 - Fear and sadness are often confused. For triage this matters less, because both raise the *distress* signal.
 
+### 3c. Tried and not shipped: telephone head v2 (6 Nov 2026)
+
+To raise fear and sadness recall on the phone line, the head was retrained on fresh embeddings (every CREMA-D
+training clip, a clean-or-phone copy and a noisy copy, 3,354 training and 1,864 validation clips) and a one-hidden-layer
+network was tried next to the linear head (`eval/train_ser_head_v2.py`). On validation speakers:
+
+- The network was worse than a linear head (best 55.2% vs 57.4% balanced accuracy on telephone + noisy audio).
+- The new linear head looks better at its default setting (sadness recall on the phone line 0.22 → 0.39 on test
+  speakers), but only because it flags calm callers far more often (29.6% vs 15.8% on validation).
+- At the same calm-call false-alarm cap as the live system (≤ 20%), it gains 0.3 to 1.1 points, below the 1-point bar
+  set before the run.
+
+**So v1.1 stays in use.** Details: `eval/results/ser_head_v2.md`. A bigger head on the same embedding does not fix
+telephone audio; more varied speakers or fine-tuning the base model on telephone audio are the next steps.
+
 ## 4. Live performance
 
 | Metric | Result | How |

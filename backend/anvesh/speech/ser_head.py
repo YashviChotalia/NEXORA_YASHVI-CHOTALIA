@@ -27,13 +27,21 @@ class Head:
         self.classes: list[str] = list(spec["classes"])
         self.mean = np.asarray(spec["mean"], dtype=np.float32)
         self.scale = np.asarray(spec["scale"], dtype=np.float32)
-        self.coef = np.asarray(spec["coef"], dtype=np.float32)
-        self.intercept = np.asarray(spec["intercept"], dtype=np.float32)
+        self.kind = spec.get("kind", "linear")
+        if self.kind == "mlp":  # one hidden ReLU layer (head v2); weights stored as plain lists, no pickle
+            self.layers = [(np.asarray(L["W"], dtype=np.float32), np.asarray(L["b"], dtype=np.float32))
+                           for L in spec["layers"]]
+            shapes_ok = (self.layers[0][0].shape[1] == len(self.mean)
+                         and self.layers[-1][0].shape[0] == len(self.classes))
+        else:
+            self.coef = np.asarray(spec["coef"], dtype=np.float32)
+            self.intercept = np.asarray(spec["intercept"], dtype=np.float32)
+            shapes_ok = self.coef.shape == (len(self.classes), len(self.mean))
         self.temperature = float(spec.get("temperature", 1.0))
         # log-prior added to "neutral" after calibration: the operating point chosen on validation speakers to cap
         # false alarms on calm telephone speech (see eval/train_ser_head.py)
         self.neutral_prior = float(spec.get("neutral_log_prior", 0.0))
-        if self.coef.shape != (len(self.classes), len(self.mean)):
+        if not shapes_ok:
             raise ValueError("ser head: weight shape does not match classes / embedding size")
 
     @property
@@ -44,15 +52,24 @@ class Head:
         z = np.asarray(feats, dtype=np.float32).reshape(-1)
         if z.shape[0] != self.dim or not np.all(np.isfinite(z)):
             return None
-        logits = (self.coef @ ((z - self.mean) / self.scale) + self.intercept) / self.temperature
+        logits = self._logits((z - self.mean) / self.scale) / self.temperature
         if "neutral" in self.classes:
             logits[self.classes.index("neutral")] += self.neutral_prior
         p = np.exp(logits - logits.max())
         p /= p.sum()
         return {c: round(float(v), 4) for c, v in zip(self.classes, p)}
 
+    def _logits(self, x: np.ndarray) -> np.ndarray:
+        if self.kind == "mlp":
+            for i, (W, b) in enumerate(self.layers):
+                x = W @ x + b
+                if i < len(self.layers) - 1:
+                    x = np.maximum(x, 0.0)
+            return x
+        return self.coef @ x + self.intercept
+
     def info(self) -> dict:
-        keys = ("name", "base_model", "trained_on", "train_speakers", "train_clips", "conditions", "temperature",
+        keys = ("name", "kind", "base_model", "trained_on", "train_speakers", "train_clips", "conditions", "temperature",
                 "neutral_log_prior", "validation")
         return {k: self.spec.get(k) for k in keys if k in self.spec}
 

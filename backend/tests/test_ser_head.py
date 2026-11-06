@@ -60,3 +60,18 @@ def test_latency_summary_reports_median_and_p95():
     out = s.summary()
     assert out["emotion_ms"]["n"] == 100 and out["emotion_ms"]["median"] == 50.5 and out["emotion_ms"]["p95"] == 95
     assert "transcript_s" not in out
+
+
+def test_network_head_v2_runs_from_plain_json():
+    import numpy as np
+
+    from anvesh.speech.ser_head import Head
+    rng = np.random.default_rng(0)
+    d, h = 768, 8
+    spec = {"classes": ["neutral", "angry", "fearful", "sad"], "mean": [0.0] * d, "scale": [1.0] * d, "kind": "mlp",
+            "layers": [{"W": rng.normal(size=(h, d)).tolist(), "b": [0.0] * h},
+                       {"W": rng.normal(size=(4, h)).tolist(), "b": [0.0] * 4}],
+            "temperature": 1.5, "neutral_log_prior": 0.5}
+    p = Head(spec).predict(rng.normal(size=d))
+    assert p and abs(sum(p.values()) - 1) < 1e-3 and set(p) == set(spec["classes"])
+    assert Head(spec).predict(np.zeros(10)) is None  # wrong size abstains

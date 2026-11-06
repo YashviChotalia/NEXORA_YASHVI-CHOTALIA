@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-frontend-000000?logo=nextdotjs&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-117%20passing-2ea44f)
+![Tests](https://img.shields.io/badge/tests-149%20passing-2ea44f)
 ![SER on phone audio](https://img.shields.io/badge/phone--line%20emotion%20recall-0.44%E2%86%920.72-2a78d6)
 ![Runs offline](https://img.shields.io/badge/runs-fully%20on%20a%20laptop-orange)
 ![Languages](https://img.shields.io/badge/speech--to--text-22%20Indian%20languages%20%2B%20English-2a78d6)
@@ -19,7 +19,7 @@ PS: Real-Time Speech Emotion Analysis for Cybercrime Investigation*
 
 **Designed and developed by [Yashvi Chotalia](https://github.com/YashviChotalia)**
 
-[Live demo](#demo) · [Demo video](#demo) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Evaluation](EVALUATION.md) · [Security](SECURITY.md)
+[▶ Demo video](https://drive.google.com/file/d/1TihxK2z-6nfjA6FUsXiSN4ccVkCbxoNX/view?usp=sharing) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Evaluation](EVALUATION.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -43,12 +43,20 @@ account. Emotion is always an **indicative signal for a human**, never evidence 
 
 ## Demo
 
-> **Live app:** *Hugging Face Space link goes here*
-> **2-minute demo video:** *video link goes here*
+[![Watch the demo video](https://img.shields.io/badge/%E2%96%B6%20Watch%20the%20demo%20video-Google%20Drive-F97A0F?style=for-the-badge)](https://drive.google.com/file/d/1TihxK2z-6nfjA6FUsXiSN4ccVkCbxoNX/view?usp=sharing)
 
-The live app runs the full stack (speech models included) in one container on free CPU hardware, so the first live
-call after a cold start can take a minute while the models load. Sign-in details for judges are in the submission
-form. Every screen in this README is the real app running on the bundled training scenarios (`python -m anvesh.seed`).
+**2-minute demo video:** <https://drive.google.com/file/d/1TihxK2z-6nfjA6FUsXiSN4ccVkCbxoNX/view?usp=sharing>
+
+The backend runs the speech models, so Anvesh is meant to run **locally on a laptop CPU**: see
+[Quick start](#quick-start). A hosted copy can also be deployed to a free Hugging Face Space
+([Other ways to run](#other-ways-to-run)). Every screen in this README is the real app running on the bundled
+training scenarios (`python -m anvesh.seed`).
+
+**Guided demo call:** a scripted Hinglish digital-arrest call played through the real analysis. Facts fill in with
+links to the words, priority rises to *Immediate*, the coercion alert fires, and *"jeene ka mann nahi"* starts the
+automatic Tele-MANAS 14416 countdown, which the officer can cancel.
+
+![Guided demo call: crisis words start the Tele-MANAS countdown while the case file fills in](docs/screenshots/guided-demo-handoff.png)
 
 ---
 
@@ -148,9 +156,17 @@ with their sources.
 |---|---|
 | ![Ring Linker](docs/screenshots/rings.png) | ![Linked cases](docs/screenshots/case-linked.png) |
 
-| New intake: role decides which analysis runs | Audit log: hash chain verified |
+| New intake: guided demo call, and the role decides which analysis runs | Audit log: hash chain verified |
 |---|---|
 | ![New intake](docs/screenshots/intake.png) | ![Audit log](docs/screenshots/audit.png) |
+
+| Evidence page: every measured result, with its results file | Case dossier (PDF): priority, hand-offs and every fact with its source words |
+|---|---|
+| ![Evidence](docs/screenshots/evidence.png) | ![Case dossier](docs/screenshots/dossier.png) |
+
+| Caller phone (`/call`): dial 1930 from a second screen | Officer console: the incoming call rings on every desk |
+|---|---|
+| <p align="center"><img src="docs/screenshots/caller-dialer.png" alt="Caller dialer" width="300"></p> | ![Incoming call](docs/screenshots/incoming-call.png) |
 
 | Official context for each case | Landing page (`/welcome`) |
 |---|---|
@@ -410,7 +426,7 @@ backend/
   anvesh/          API, speech models, live SER, NLP, triage, linker, audit, storage
   anvesh/data/     official NCRB / I4C / DoT data with sources.json
   eval/            extraction and speech-emotion evaluation scripts
-  tests/           117 unit, API and security tests
+  tests/           149 unit, API and security tests
 frontend/          Next.js workspace and landing page
 scripts/           Windows setup and start scripts
 docs/screenshots/  images used in this README

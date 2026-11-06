@@ -146,6 +146,57 @@ with their sources.
 
 ---
 
+## Why Anvesh is built for the cyber cell desk
+
+Most speech-emotion tools stop at a label like *"fear 0.81"*. A cyber cell officer needs to know **what to do next**,
+within the golden hour, with paperwork that holds up. Anvesh is designed around that job.
+
+### Ten reasons it fits a real cyber cell
+
+1. **It understands how Indian victims actually speak.** Hinglish, Devanagari, numbers said in two languages
+   (*"nau eight saat…"*), money in words (*"dedh lakh"* → ₹1,50,000) and UPI IDs spelled aloud
+   (*"at the rate ybl"* → `@ybl`). Speech-to-text covers **22 Indian languages** plus English.
+2. **The case file writes itself while the caller talks.** Amount, time, UPI ID, phone, account, IFSC, UTR, bank,
+   app and claimed agency are captured live, and **every field links to the exact second of audio** it came from.
+   The officer verifies or corrects each one with a click.
+3. **One clear priority, with the reasons shown.** *Immediate / High / Standard* comes from reported facts: how long
+   ago the money left, how much, and whether someone still controls the caller. No black-box score to argue about.
+4. **Voice emotion that works on a phone line, not just in a studio.** A telephone-adapted model lifts
+   "needs attention" recall from **0.44 to 0.72** on held-out speakers, with calibrated confidence (error **0.03**).
+   It **abstains** on bad audio or unvalidated languages instead of guessing.
+5. **It protects the victim during the call.** *"Kisi ko mat batana"* or *"abhi bhi video call pe hain"* raises a
+   **possible-active-coercion alert** with the quoted words and the advice to give. Crisis words in **13 Indian
+   languages plus English** start a **cancellable warm transfer to Tele-MANAS 14416** (112 for danger).
+6. **One complaint becomes a search over every earlier one.** The **Ring Linker** connects cases across districts
+   by shared UPI IDs, phone numbers and accounts, similar scam scripts and suspect voices, and totals the reported loss.
+7. **The interview co-pilot asks the right next question.** Playbooks for digital arrest, investment, KYC, courier,
+   sextortion, job and utility scams, plus prompts for every missing detail. Facts are read back to the caller in
+   Hindi for confirmation.
+8. **Paperwork that stands up.** An editable complaint draft and a **one-page PDF case dossier** with every fact
+   tied to its words, recording hashes (SHA-256) and the case's audit trail. Every view, AI output and correction
+   goes into an **HMAC-signed, tamper-evident audit chain**.
+9. **Responsible by design.** Outputs are **indicative signals, never evidence of guilt**. Emotion scoring is
+   **switched off for suspects**, voice matches are leads only, and distress can raise a call by **one level at most**.
+   Personal data is encrypted field by field (AES-256-GCM) with named logins and need-to-know roles, built with
+   the DPDP Act 2023 in mind.
+10. **Runs on the hardware a station already has.** A laptop CPU is enough; once models are downloaded it works
+    **fully offline**, so **no call audio ever leaves the station** and there are no per-minute cloud speech fees.
+    `setup.bat` installs everything in one click; `docker compose` scales it to a district server.
+
+### A shift on the desk: today vs with Anvesh
+
+| Today | With Anvesh |
+|---|---|
+| The officer types while listening | Facts are captured as the caller speaks, each linked to the audio |
+| Urgency is felt, not written down | One priority with its reasons shown |
+| Hidden coercion can be missed | Coercion alert with the quoted words and what to say |
+| A caller in crisis depends on the officer noticing | Crisis words start a cancellable Tele-MANAS hand-off |
+| Each complaint stands alone | Linked to earlier cases as fraud rings across districts |
+| Hard to show what changed, and who changed it | Every action in a signed, verifiable audit chain |
+| Complaint retyped from scratch | Complaint draft and PDF dossier generated from the verified case file |
+
+---
+
 ## Screenshots
 
 | Case workspace: live coercion alert and urgency assessment | Case details: every field linked to the second of audio |
@@ -326,39 +377,8 @@ transcribed and analysed live.
   `NEXT_PUBLIC_API_URL` to the backend address. The landing page `/welcome` needs no backend; sign-in needs the API
   on the same site (the session cookie is `SameSite=Strict`), so use the Space above for a full hosted demo.
 
-### Configuration
-
-All settings are optional environment variables.
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `ANVESH_ASR_MODEL` | `small` | live speech-to-text size (`base` for low-RAM laptops) |
-| `ANVESH_ASR_FINAL_MODEL` | `large-v3-turbo` | accurate re-transcription after a call |
-| `ANVESH_EMOTION_MODEL` | `iic/emotion2vec_plus_base` | voice emotion checkpoint |
-| `ANVESH_SPOOF_MODEL` | `MelodyMachine/Deepfake-audio-detection-V2` | synthetic-voice detector |
-| `ANVESH_ENABLE_ASR_FINAL` / `_EMOTION` / `_SPEAKER` / `_SPOOF` | `1` | turn individual models off (`0`) |
-| `ANVESH_TEXT_EMBEDDER` | *(empty)* | e.g. `paraphrase-multilingual-MiniLM-L12-v2` for cross-language script links |
-| `ANVESH_VALIDATED_LANGS` | `en,hi` | languages where the voice distress track may score |
-| `ANVESH_TELEPHONY` | `demo` | helpline hand-off: `demo` (full flow, no real call), `webhook` (signed POST to your PBX / contact-centre bridge), `off` (suggestions only) |
-| `ANVESH_TELEPHONY_URL`, `ANVESH_TELEPHONY_SECRET` | | webhook endpoint and HMAC secret for `webhook` mode |
-| `ANVESH_HANDOFF_COUNTDOWN_S` | `10` | seconds the officer has to cancel an automatic transfer |
-| `ANVESH_SER_HEAD` | `auto` | telephone-adapted emotion head: `auto` (use it when present), `off` (raw emotion2vec+), or a path to another head file |
-| `ANVESH_MASTER_KEY` | generated in `~/.anvesh/keys` | 32-byte base64 master key (use a secret manager in production) |
-| `ANVESH_SESSION_IDLE_MIN` / `ANVESH_SESSION_MAX_HOURS` | `30` / `12` | session idle timeout and maximum lifetime |
-| `ANVESH_RETENTION_DAYS` | `0` (keep) | erase closed cases older than this at start-up |
-| `ANVESH_MAX_UPLOAD_MB` | `100` | largest audio upload accepted |
-| `ANVESH_BOOTSTRAP_ADMIN` / `ANVESH_BOOTSTRAP_PASSWORD` | *(empty)* | hosted deployments: create the first administrator at start-up when no account exists (password change forced at first sign-in) |
-| `NEXT_PUBLIC_API_URL` (frontend, build time) | `http://localhost:8000` | API address; empty = same origin as the app |
-
-### Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| A model shows *Error* in the System panel | Run `python -m anvesh.download_models` and check the output; see `logs\backend.log` |
-| Slow transcription on an older laptop | Set `ANVESH_ASR_MODEL=base` and `ANVESH_ENABLE_ASR_FINAL=0` |
-| Setup page says it is only allowed from the server | Open the app on the same computer as the backend, at `localhost` |
-| Port 8000 or 3000 already in use | `start.bat` frees them; otherwise stop the other program |
-| Encrypted data cannot be read after moving machines | Copy `~/.anvesh/keys/master.key` with the data (back it up separately) |
+Settings (environment variables) and fixes for common problems are in
+**[docs/CONFIGURATION.md](docs/CONFIGURATION.md)**.
 
 ---
 

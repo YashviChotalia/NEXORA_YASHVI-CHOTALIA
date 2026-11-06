@@ -23,7 +23,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setMe(s.user || null);
       const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
       if (s.setup_required) { if (!path.startsWith("/setup")) router.replace("/setup"); }
-      else if (!s.signed_in) { if (!isPublic) router.replace(`/login?next=${encodeURIComponent(path)}`); }
+      // signed out: the home address opens the landing page; a deep link goes to sign-in and comes back after
+      else if (!s.signed_in) { if (!isPublic) router.replace(path === "/" ? "/welcome" : `/login?next=${encodeURIComponent(path)}`); }
       else if (s.user?.must_change_password && !path.startsWith("/account")) router.replace("/account?required=1");
       else if (isPublic) router.replace(s.user?.permissions.includes("case:read") ? "/" : "/admin/users");
     } catch {

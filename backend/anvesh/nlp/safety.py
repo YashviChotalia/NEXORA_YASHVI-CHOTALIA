@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from . import safety_indic
+
 COERCION_PHRASES = [
     "kisi ko mat batana", "kisi ko nahi batana", "kisi ko na batau", "don't tell anyone",
     "do not tell anyone", "told me not to tell", "abhi bhi call pe", "abhi bhi video call",
@@ -71,6 +73,10 @@ DISTRESS_LEXICON = [
     "मदद", "बचाओ", "डर लग", "परेशान", "प्लीज", "क्या करूं", "सब चला गया",
 ]
 
+# the same signals in the other Indian languages Anvesh transcribes (safety_indic.py)
+CRISIS_PHRASES += safety_indic.flat(safety_indic.CRISIS)
+DANGER_PHRASES += safety_indic.flat(safety_indic.DANGER)
+
 CRISIS_RESOURCE = "Tele-MANAS mental-health helpline: 14416 (24x7). Hand over to a trained person."
 
 
@@ -111,6 +117,7 @@ def scan(segments) -> SafetySignals:
                 dur = seg.end - seg.start
                 bucket.append({
                     "segment_id": seg.id, "phrase": p, "quote": seg.text[s:e],
+                    "lang": safety_indic.language_of(p),
                     "t_start": round(seg.start + dur * s / n, 2), "t_end": round(seg.start + dur * e / n, 2),
                 })
     return sig

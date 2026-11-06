@@ -39,6 +39,15 @@ CREMA = CACHE / "train_feats_c1_s7.npz"
 OUT = Path(__file__).resolve().parents[1] / "anvesh" / "data" / "models" / "ser_head_telephone.json"
 RESULTS = Path(__file__).with_name("results") / "multilingual"
 PHONE_MIX = ("phone", "phone_snr20", "phone_snr10")
+# a language is VALIDATED for the voice distress track when, held out of training, on phone audio the head
+# flags at least this share of distressed clips and at most this share of calm clips (decided before the run)
+VALID_MIN_RECALL = 0.70
+VALID_MAX_FALSE_ALARM = 0.35
+CODES = {"assamese": "as", "bengali": "bn", "bodo": "brx", "dogri": "doi", "gujarati": "gu", "hindi": "hi",
+         "kannada": "kn", "kashmiri": "ks", "konkani": "kok", "maithili": "mai", "malayalam": "ml", "manipuri": "mni",
+         "marathi": "mr", "nepali": "ne", "odia": "or", "punjabi": "pa", "sanskrit": "sa", "santali": "sat",
+         "sindhi": "sd", "tamil": "ta", "telugu": "te", "urdu": "ur", "english": "en", "french": "fr", "german": "de",
+         "italian": "it", "polish": "pl", "russian": "ru", "spanish": "es"}
 
 
 def _load_ml() -> dict:
@@ -51,6 +60,30 @@ def _load_ml() -> dict:
 def _save_ml(d: dict) -> None:
     CACHE.mkdir(parents=True, exist_ok=True)
     np.savez(ML, **{k: (np.array(v, dtype=np.float32) if k == "X" else np.array(v)) for k, v in d.items()})
+
+
+WINDOW_S = 3.0  # the app scores 3 s windows (live_ser.WINDOW_S); long inputs are also very slow for the model
+
+
+def _windowed(emotion, x: np.ndarray):
+    """Score a clip the way the app scores a call: 3 s windows, averaged (embedding and probabilities)."""
+    n = int(WINDOW_S * A.SR)
+    # one window per clip, from its middle: exactly one live-call window (and fast enough for 22 languages)
+    starts = [max(0, (len(x) - n) // 2)]
+    feats, probs = [], []
+    for s0 in starts:
+        w = x[s0:s0 + n]
+        if len(w) < A.SR:
+            continue
+        raw, f = emotion.predict_full(w, block=True)
+        if f is not None:
+            feats.append(f)
+            probs.append(raw or {})
+    if not feats:
+        return None, None
+    keys = {k for p in probs for k in p}
+    avg = {k: float(np.mean([p.get(k, 0.0) for p in probs])) for k in keys}
+    return avg, np.mean(np.stack(feats), axis=0)
 
 
 def extract(manifest: Path, budget: float) -> None:
@@ -76,7 +109,7 @@ def extract(manifest: Path, budget: float) -> None:
             f = A.features(x) or {}
             if not f or f.get("rms", 0.0) < 0.006:
                 continue
-            raw, feats = emotion.predict_full(x, block=True)
+            raw, feats = _windowed(emotion, x)
             if feats is None:
                 continue
             d["X"].append(feats)
@@ -211,6 +244,11 @@ def lolo() -> dict:
             if vals:
                 avg[(cname, sysk)] = {k: float(np.mean([v[k] for v in vals if v[k] is not None]))
                                       for k in ("accuracy", "attention_recall", "false_alarm", "balanced_accuracy")}
+    validated = []
+    for L, res in out.items():
+        m = res.get("phone", {}).get("multilingual")
+        if m and (m["attention_recall"] or 0) >= VALID_MIN_RECALL and (m["false_alarm"] or 0) <= VALID_MAX_FALSE_ALARM:
+            validated.append(CODES.get(L, L))
     md = ["# Leave-one-language-out: emotion on languages the head has never heard\n",
           "Each row: a head trained on English (CREMA-D train speakers) plus every OTHER language, scored only on this "
           "language. Columns compare the raw emotion2vec+ model / the English-only head / the multilingual head. "
@@ -218,6 +256,9 @@ def lolo() -> dict:
           "| Held-out language | Speakers | Audio | Accuracy raw | English-only head | **Multilingual head** | "
           "Attention recall raw / EN / ML | False alarms raw / EN / ML |",
           "|---|---|---|---|---|---|---|---|", *rows, "",
+          f"**Validated for the voice distress track** (held out, phone audio: attention recall >= "
+          f"{VALID_MIN_RECALL:.2f} and false alarms <= {100 * VALID_MAX_FALSE_ALARM:.0f}%): "
+          + (", ".join(sorted(validated)) or "none") + "\n",
           "Average over held-out languages:\n", "| Audio | System | Accuracy | Balanced accuracy | Attention recall | "
           "False alarms |", "|---|---|---|---|---|---|"]
     for (cname, sysk), v in avg.items():
@@ -225,7 +266,7 @@ def lolo() -> dict:
                   f"{v['attention_recall']:.2f} | {100 * v['false_alarm']:.1f}% |")
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / "lolo_results.md").write_text("\n".join(md) + "\n", encoding="utf-8")
-    (RESULTS / "lolo_results.json").write_text(json.dumps({"per_language": out,
+    (RESULTS / "lolo_results.json").write_text(json.dumps({"per_language": out, "validated": sorted(validated),
                                                            "average": {f"{a}/{b}": v for (a, b), v in avg.items()}},
                                                           indent=1), encoding="utf-8")
     print("\n".join(md))

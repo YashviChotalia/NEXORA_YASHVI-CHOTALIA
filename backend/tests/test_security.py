@@ -502,3 +502,25 @@ def test_bootstrap_admin_must_change_password(monkeypatch):
     with SessionLocal() as db:
         u = db.query(User).filter_by(username="boot.admin2").one()
         assert u.must_change_password and set(u.roles) == {"admin", "supervisor"}
+
+
+def test_concurrent_audit_writers_keep_one_chain():
+    """Two requests writing audit events at the same moment must not both link to the same previous event."""
+    import threading
+
+    from anvesh import audit as A
+    from anvesh.models import SessionLocal
+
+    def burst(tag):
+        for i in range(15):
+            with SessionLocal() as db:
+                A.record(db, f"tester-{tag}", "test.concurrent", None, {"i": i})
+                db.commit()
+
+    threads = [threading.Thread(target=burst, args=(k,)) for k in range(4)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    with SessionLocal() as db:
+        assert A.verify(db)["ok"] is True

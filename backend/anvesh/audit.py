@@ -13,14 +13,45 @@ the case file. It does not by itself prove a recording is authentic, complete or
 from __future__ import annotations
 
 import hashlib
+import logging
+import threading
 
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from . import keys
 from .models import AuditEvent, dumps, utcnow
 
 GENESIS = "0" * 64
+log = logging.getLogger("anvesh.audit")
+
+# One writing transaction at a time in this process. Without it, two requests that each add an audit event can
+# both read the same "last event" and link to it, which forks the chain (seen when a page fetched twice at once).
+# The lock is taken at a session's first flush and released when its transaction ends, so the order is always
+# "this lock, then the database's own write lock" (no deadlock). SQLite allows one writer at a time anyway, so
+# nothing is lost in throughput. A multi-process deployment on PostgreSQL would use an advisory lock instead.
+_WRITE_LOCK = threading.Lock()
+_WAIT_S = 20.0
+
+
+def _hold(session) -> None:
+    if session.info.get("_audit_lock"):
+        return
+    if _WRITE_LOCK.acquire(timeout=_WAIT_S):
+        session.info["_audit_lock"] = True
+    else:  # never hang a request: write anyway; verify() would show any fork
+        log.warning("audit write lock not acquired within %.0f s; writing without it", _WAIT_S)
+
+
+@event.listens_for(Session, "before_flush")
+def _serialise_writers(session, _ctx, _instances):
+    _hold(session)
+
+
+@event.listens_for(Session, "after_transaction_end")
+def _release_writers(session, transaction):
+    if transaction.parent is None and session.info.pop("_audit_lock", False):
+        _WRITE_LOCK.release()
 SENSITIVE_KEYS = {"before", "after", "value", "caller_label", "model_value", "narrative", "text", "filename",
                   "display", "note", "quote", "name", "phone", "upi", "account", "password"}
 
@@ -47,6 +78,7 @@ def _digest(prev_hash: str, body: str, alg: str | None) -> str:
 
 def record(db: Session, actor: str, action: str, case_id: str | None = None, payload: dict | None = None,
            model_version: str | None = None) -> AuditEvent:
+    _hold(db)  # before reading the last event, so no other writer can append in between
     last = db.execute(select(AuditEvent).order_by(AuditEvent.id.desc()).limit(1)).scalar_one_or_none()
     prev = last.hash if last else GENESIS
     ts = utcnow().replace(microsecond=0)

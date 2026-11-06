@@ -41,9 +41,15 @@ function Workspace() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (!c?.processing) return;
-    const t = setInterval(load, 3000);
+    // while the case is being filled in (refined transcript, guided demo call) follow it like a live call:
+    // the same in-call alerts fire as each new fact, signal or hand-off arrives
+    const fast = c.processing.startsWith("Demo call");
+    const t = setInterval(() => {
+      api.get<CaseDetail>(`/api/cases/${id}`).then((x) => onLive(x)).catch(() => {});
+    }, fast ? 1500 : 3000);
     return () => clearInterval(t);
-  }, [c?.processing, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c?.processing, id]);
 
   const toast = (t: { tone: "crit" | "warn" | "accent" | "ok"; title: string; body?: string }) => {
     const tid = Date.now() + Math.random();

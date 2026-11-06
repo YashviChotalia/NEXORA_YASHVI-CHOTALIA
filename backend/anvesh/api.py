@@ -483,11 +483,16 @@ def list_cases(status: str | None = None, priority: str | None = None, training:
 
 @app.post("/api/cases", status_code=201)
 def create_case(body: CaseIn, db: Session = Depends(db_session), p: Principal = Depends(CASE_WRITE)):
+    training = body.synthetic and p.can("link:review")  # only supervisors may create training scenarios
+    case = _new_case(db, p, body, training)
+    return case_detail(db, case, p)
+
+
+def _new_case(db: Session, p: Principal, body: CaseIn, training: bool) -> Case:
     who = p.actor
     now = datetime.now()
     year = now.year
     n = (db.execute(select(func.count(Case.id))).scalar() or 0) + 1
-    training = body.synthetic and p.can("link:review")  # only supervisors may create training scenarios
     case = Case(id=f"AV-{year}-{n:05d}", mode=body.mode, channel=body.channel, caller_label=body.caller_label,
                 district=body.district, synthetic=training, created_by=p.username,
                 language=None if body.language in (None, "", "auto") else body.language,
@@ -500,7 +505,7 @@ def create_case(body: CaseIn, db: Session = Depends(db_session), p: Principal = 
     audit.record(db, who, "case.created", case.id, {"mode": body.mode, "channel": body.channel,
                                                     "synthetic": training})
     pipeline.process(db, case, who)
-    return case_detail(db, case, p)
+    return case
 
 
 @app.get("/api/cases/{case_id}")
@@ -748,6 +753,33 @@ def dossier(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), 
                       "audit_events_checked": head.get("events_checked"), "audit_head": head.get("head"),
                       "pipeline": pipeline.model_version()},
     }
+
+
+class DemoIn(BaseModel):
+    scenario: str = PField(pattern="^[a-z_]{3,40}$")
+    speed: float = PField(default=1.0, ge=0.5, le=20.0)
+
+
+@app.get("/api/demo/scenarios")
+def demo_scenarios(p: Principal = Depends(CASE_READ)):
+    from . import demo
+    return demo.scenarios()
+
+
+@app.post("/api/demo/calls", status_code=201)
+def demo_call(body: DemoIn, db: Session = Depends(db_session), p: Principal = Depends(CASE_WRITE)):
+    """Start a guided demo call: a new training case that fills in step by step through the real analysis."""
+    from . import demo
+    sc = demo.SCENARIOS.get(body.scenario)
+    if sc is None:
+        raise HTTPException(404, "Unknown demo scenario")
+    # demo calls always go to the Training workspace, so they never mix with real cases
+    case = _new_case(db, p, CaseIn(mode="victim", channel="helpline", caller_label=sc["caller"],
+                                   district=sc["district"], synthetic=True, language=sc["language"]), training=True)
+    db.commit()
+    demo.start(case.id, body.scenario, p.actor, body.speed)
+    seconds = (sc["steps"][-1][0] + 6) / body.speed
+    return {"id": case.id, "scenario": body.scenario, "seconds": round(seconds, 1)}
 
 
 class EraseIn(BaseModel):

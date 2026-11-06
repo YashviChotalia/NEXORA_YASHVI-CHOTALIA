@@ -7,6 +7,7 @@ import { TopBar } from "@/components/Shell";
 import { ErrorNote } from "@/components/ui";
 import { api } from "@/lib/api";
 import { LANGUAGES } from "@/lib/format";
+import { useWorkspace } from "@/lib/workspace";
 import type { CaseDetail, Mode } from "@/lib/types";
 
 const MODES: { key: Mode; title: string; desc: string; channel: string; runs: string; off: string }[] = [
@@ -40,6 +41,17 @@ export default function Intake() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const m = MODES.find((x) => x.key === mode)!;
+  const [, setWs] = useWorkspace();
+
+  /** Guided demo: a scripted call played through the real analysis (backend demo.py). */
+  const demo = async (scenario: string) => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await api.post<{ id: string }>("/api/demo/calls", { scenario });
+      setWs("training");
+      router.push(`/cases/${r.id}`);
+    } catch (e: any) { setErr(e.message); setBusy(false); }
+  };
 
   const go = async () => {
     setBusy(true); setErr(null);
@@ -56,6 +68,21 @@ export default function Intake() {
     <>
       <TopBar title="New intake" crumbs={[{ href: "/", label: "Case queue" }]} />
       <div className="mx-auto max-w-3xl space-y-5 p-6">
+        <section className="panel border-accent-line">
+          <header className="panel-h">
+            <h3 className="panel-t">Guided demo call</h3>
+            <span className="text-xs2 text-fg-3">Training workspace · never mixed with real cases</span>
+          </header>
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <p className="min-w-[260px] flex-1 text-xs2 leading-[17px] text-fg-2">
+              A scripted victim call plays out in about a minute. The words and the acted voice clips are scripted
+              (one CREMA-D speaker the model never trained on); everything after that is the real analysis: facts,
+              priority, distress, the automatic Tele-MANAS hand-off and linked cases.
+            </p>
+            <button onClick={() => demo("digital_arrest")} disabled={busy} className="btn-primary">Digital arrest (Hinglish)</button>
+            <button onClick={() => demo("tamil_crisis")} disabled={busy} className="btn-secondary">Investment fraud (Tamil)</button>
+          </div>
+        </section>
         <section className="panel">
           <header className="panel-h"><h3 className="panel-t">1. Call type</h3><span className="text-xs2 text-fg-3">Confirmed by the operator</span></header>
           <div className="divide-y divide-line">

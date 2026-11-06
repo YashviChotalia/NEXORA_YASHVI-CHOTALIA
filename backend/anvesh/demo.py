@@ -2,7 +2,7 @@
 
 What is scripted and what is real:
   scripted  the words (no speech-to-text runs) and the voice clips, which are acted CREMA-D recordings of one speaker
-            the emotion head never saw in training (speaker 1002, held out; ODbL, see LICENSES.md)
+            the emotion head never saw in training (speaker 1014, held out; ODbL, see LICENSES.md)
   real      everything after that: the voice-emotion model and distress track on those clips, field extraction with
             evidence, triage, safety signals, the automatic helpline hand-off (the call counts as live, so the
             Tele-MANAS countdown starts by itself), Ring Linker matches against the training cases, the audit log

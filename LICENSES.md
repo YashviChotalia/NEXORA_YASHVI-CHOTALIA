@@ -14,7 +14,7 @@ it does not grant commercial rights.
 | scikit-learn, FastAPI, SQLAlchemy, Next.js, React | Application | BSD / MIT | Yes | In use |
 | RAVDESS | Possible fine-tuning | CC BY-NC-SA 4.0 | **No** | Not used in product |
 | IEMOCAP | Possible evaluation | Academic licence | **No** | Not used |
-| CREMA-D | Trains the telephone-adapted emotion head; evaluation | Open Database Licence (ODbL) v1.0 | Likely, check terms | In use (head weights in `anvesh/data/models/`; no audio in the repo) |
+| CREMA-D | Trains the telephone-adapted emotion head; evaluation | Open Database Licence (ODbL) v1.0 | Likely, check terms | In use (head weights in `anvesh/data/models/`; 8 acted clips of one held-out speaker, 1014, in `anvesh/data/demo/voice/` for the guided demo call, unchanged, with attribution to Cao et al. 2014) |
 | Anvesh telephone-adapted head (`ser_head_telephone.json`) | Voice emotion on phone audio | Anvesh code licence; built from CREMA-D (ODbL): attribution to CREMA-D, Cao et al. 2014 | Follow CREMA-D and emotion2vec+ terms | In use |
 | ICFD-31k | Scam-text development | "other" | Unknown | Not used yet |
 

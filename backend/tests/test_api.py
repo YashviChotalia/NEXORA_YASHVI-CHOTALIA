@@ -119,3 +119,11 @@ def test_dossier_has_everything_and_its_fingerprint_is_in_the_audit_log():
     assert "guilt" in d["disclaimer"]
     log = client.get(f"/api/audit?case_id={c['id']}").json()
     assert any(e["action"] == "dossier.generated" for e in log)
+
+
+def test_evidence_page_numbers_come_from_the_results_files():
+    e = client.get("/api/evidence").json()
+    assert e["available"] and e["sources"]["ser"].startswith("eval/results/")
+    phone = next(r for r in e["ser"]["rows"] if r["condition"].startswith("Phone line"))
+    assert 0 < phone["accuracy_all"] < 1 and phone["ece"] is not None
+    assert 0 < e["calls"]["auc"] <= 1 and e["languages"]["languages"] >= 20

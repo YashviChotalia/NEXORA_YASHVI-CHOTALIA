@@ -755,6 +755,17 @@ def dossier(case_id: Annotated[str, CaseId], db: Session = Depends(db_session), 
     }
 
 
+@app.get("/api/evidence")
+def evidence(p: Principal = Depends(auth.current)):
+    """Measured results shown on the Evidence page (built from eval/results by eval/build_evidence.py)."""
+    import json
+    from pathlib import Path as _P
+    f = _P(__file__).with_name("data") / "evidence.json"
+    if not f.exists():
+        return {"available": False}
+    return {"available": True, **json.loads(f.read_text(encoding="utf-8"))}
+
+
 class DemoIn(BaseModel):
     scenario: str = PField(pattern="^[a-z_]{3,40}$")
     speed: float = PField(default=1.0, ge=0.5, le=20.0)

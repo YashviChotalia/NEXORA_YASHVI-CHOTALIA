@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { BarChart3, FilePlus2, Inbox, LogOut, ScrollText, Share2, UserCog, Users } from "lucide-react";
+import { BarChart3, FilePlus2, Inbox, LogOut, ScrollText, Share2, UserCog, Users, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/", label: "Case queue", icon: Inbox, perm: "case:read", match: (p: string) => p === "/" || p.startsWith("/cases") },
   { href: "/intake", label: "New intake", icon: FilePlus2, perm: "case:write", match: (p: string) => p.startsWith("/intake") },
   { href: "/rings", label: "Linked cases", icon: Share2, perm: "case:read", match: (p: string) => p.startsWith("/rings") },
+  { href: "/evidence", label: "Evidence", icon: FlaskConical, perm: "", match: (p: string) => p.startsWith("/evidence") },
   { href: "/insights", label: "National data", icon: BarChart3, perm: "", match: (p: string) => p.startsWith("/insights") },
   { href: "/admin/users", label: "Users", icon: Users, perm: "user:admin", match: (p: string) => p.startsWith("/admin") },
   { href: "/audit", label: "Audit log", perm: "audit:read", icon: ScrollText, match: (p: string) => p.startsWith("/audit") },

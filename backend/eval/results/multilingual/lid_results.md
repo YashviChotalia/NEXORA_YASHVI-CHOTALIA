@@ -14,11 +14,19 @@ AI4Bharat Rasa, every clip on its own (a few seconds of speech). *Anvesh* = what
 | Kashmiri ¹ | ks | 80 | 0% | 81% | 99% | **78%** | Urdu |
 | Konkani ¹ | kok | 80 | 0% | 99% | 100% | **99%** | Marathi |
 | Maithili ¹ | mai | 80 | 0% | 90% | 99% | **48%** | Hindi |
-| Malayalam | ml | 80 | 98% | 99% | 100% | **98%** | Telugu |
+| Malayalam | ml | 80 | 98% | 99% | 100% | **98%** | en |
 | Manipuri ¹ | mni | 80 | 0% | 100% | 100% | **69%** | en |
 | Marathi | mr | 80 | 92% | 99% | 100% | **95%** | Hindi |
 | Nepali | ne | 80 | 99% | 98% | 100% | **98%** | Bengali |
-| **All** | | 1116 | 46% | 93% | 99% | **89%** | |
+| Odia ¹ | or | 80 | 0% | 100% | 100% | **100%** | - |
+| Punjabi | pa | 80 | 76% | 100% | 100% | **80%** | Hindi |
+| Sanskrit | sa | 80 | 0% | 100% | 100% | **92%** | en |
+| Santali ¹ | sat | 80 | 0% | 100% | 100% | **99%** | Hindi |
+| Sindhi | sd | 80 | 0% | 94% | 96% | **86%** | Hindi |
+| Tamil | ta | 80 | 99% | 100% | 100% | **100%** | - |
+| Telugu | te | 80 | 99% | 99% | 100% | **99%** | Kannada |
+| Urdu | ur | 80 | 0% | 71% | 99% | **2%** | Hindi |
+| **All** | | 1756 | 42% | 94% | 99% | **87%** | |
 
 ¹ Whisper has no model for this language, so it can only send the call onwards as 'some Indian language'; the officer can also set the language at intake, which skips detection entirely.
 

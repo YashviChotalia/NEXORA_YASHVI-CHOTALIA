@@ -59,10 +59,10 @@ class Settings:
     # Voice distress per language (EVALUATION.md, "Languages"): VALIDATED languages passed the pre-stated test
     # (held out of training, phone audio) and may change priority; MEASURED ones were tested but did not pass, so
     # the voice reading is shown as indicative only and never changes priority; any other language abstains.
-    validated_languages: tuple[str, ...] = tuple(os.getenv("ANVESH_VALIDATED_LANGS", "en,bn,mni").split(","))
+    validated_languages: tuple[str, ...] = tuple(os.getenv("ANVESH_VALIDATED_LANGS", "en,bn,mni,sa").split(","))
     measured_languages: tuple[str, ...] = tuple(os.getenv(
         "ANVESH_MEASURED_LANGS",
-        "hi,as,brx,doi,gu,kn,ks,kok,mai,ml,mr,ne,or,pa,sa,sat,sd,ta,te,ur,fr,it,pl,ru,es,de").split(","))
+        "hi,as,brx,doi,gu,kn,ks,kok,mai,ml,mr,ne,or,pa,sat,sd,ta,te,ur,fr,it,pl,ru,es,de").split(","))
 
     @property
     def database_url(self) -> str:

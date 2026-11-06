@@ -172,7 +172,8 @@ def fit(d: dict) -> tuple[dict, str]:
             per_cond[c] = round(float(np.mean(clf.predict(sc.transform(d["X"][m])) == d["y"][m])), 4)
     spec = {
         "name": "telephone-adapted head v1.1",
-        "base_model": str(d["model"]) if "/" in str(d["model"]) else "iic/emotion2vec_plus_base",
+        # the model id only, never a local cache path
+        "base_model": "iic/emotion2vec_plus_base",
         "trained_on": "CREMA-D (acted English, ODbL), clean + simulated telephone channel + pink noise",
         "split": "speaker-disjoint: test = id % 3 == 0 (held out), validation = id % 9 in (1, 2), train = rest",
         "train_speakers": int(len(set(d["speaker"][tr]))), "train_clips": int(tr.sum()),

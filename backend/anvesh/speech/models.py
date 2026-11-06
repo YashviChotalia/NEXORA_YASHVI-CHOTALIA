@@ -161,12 +161,11 @@ class ASR(_Lazy):
         if m is None:
             raise RuntimeError(f"{self.name} model not available ({self._error})")
         lang = language or self._language(m, audio)
-        if not language and self.use_indic(lang):
-            # Whisper knows that it is an Indian language but often not which one (Bengali heard as Nepali, ...):
-            # IndicConformer decides among its 22 languages from its own vocabularies.
-            ranked = indic.get(block=True).identify(audio)
-            if ranked:
-                lang = ranked[0][0]  # "hi" (unless ANVESH_INDIC_ASR_HINDI) falls through to Whisper below
+        if not language and lang != "en" and indic.get(block=True) is not None:
+            # Whisper hears that speech is Indian but often not which language; IndicConformer decides among its
+            # 22 languages (see indic_asr.route_language; measured in eval/run_lid_eval.py)
+            from .indic_asr import route_language
+            lang = route_language(lang, indic.get(block=True).identify(audio))
         if self.use_indic(lang):
             segs = indic.get(block=True).transcribe(audio, lang, offset)
             self.last_stats = {"engine": "indicconformer", "lang": lang, "kept": len(segs)}

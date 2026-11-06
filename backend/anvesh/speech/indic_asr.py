@@ -109,6 +109,33 @@ class IndicConformer:
         return words_to_segments(words, offset)
 
 
+FOREIGN_MIN_SCORE = -0.2  # IndicConformer confidence needed to override Whisper's "foreign language" verdict
+
+
+def route_language(whisper_lang: str, ranked: list[tuple[str, float]] | None, hindi_on_whisper: bool = True) -> str:
+    """Final language for a call, from Whisper's detection and IndicConformer's ranking of its 22 languages.
+
+    Whisper hears that speech is Indian but often not which language (Gujarati heard as Hindi, Bodo as French,
+    Assamese as Bengali); IndicConformer's own vocabularies are much better at that. Measured on AI4Bharat Rasa
+    (eval/run_lid_eval.py); the foreign-speech threshold on CAMEO.
+      English                 -> English
+      Hindi / Urdu            -> Hindi, unless Hindi is not even in IndicConformer's top 3
+      another Indian language -> IndicConformer's choice
+      a foreign language      -> IndicConformer's choice only if it is confident (real foreign callers stay foreign)
+    """
+    if not ranked:
+        return whisper_lang
+    top, score = ranked[0]
+    top3 = [k for k, _ in ranked[:3]]
+    if whisper_lang == "en":
+        return "en"
+    if whisper_lang in ("hi", "ur"):
+        return "hi" if ("hi" in top3 and hindi_on_whisper) else top
+    if whisper_lang in LANGUAGES:
+        return top
+    return top if score >= FOREIGN_MIN_SCORE else whisper_lang
+
+
 def split_at_pauses(x: np.ndarray, sr: int = SR, max_s: float = MAX_CHUNK_S) -> list[tuple[float, np.ndarray]]:
     """Cut long audio into <= max_s pieces at the quietest 100 ms between 60% and 100% of the limit."""
     out, i, n, hop = [], 0, len(x), int(0.1 * sr)

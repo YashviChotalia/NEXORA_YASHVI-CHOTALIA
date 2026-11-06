@@ -66,3 +66,15 @@ def test_indicconformer_decides_which_indian_language(monkeypatch):
     monkeypatch.setattr(asr, "get", lambda block=True: W())
     _, lang = asr.transcribe(np.zeros(16000, np.float32))
     assert lang == "bn"  # Whisper said Nepali; the Indian-language model's own check says Bengali
+
+
+def test_routing_rule_for_each_kind_of_whisper_verdict():
+    from anvesh.speech.indic_asr import route_language
+    gu = [("gu", -0.05), ("hi", -0.20), ("pa", -0.25)]
+    assert route_language("en", gu) == "en"                         # English stays English
+    assert route_language("hi", gu) == "hi"                         # Hindi kept while Hindi is in the top 3
+    assert route_language("hi", [("gu", -0.05), ("pa", -0.2), ("mr", -0.3)]) == "gu"  # Gujarati heard as Hindi
+    assert route_language("bn", [("as", -0.04), ("bn", -0.09)]) == "as"  # Assamese heard as Bengali
+    assert route_language("fr", [("brx", -0.06), ("as", -0.3)]) == "brx"  # Bodo heard as French: confident
+    assert route_language("fr", [("mai", -0.45), ("hi", -0.5)]) == "fr"   # a real French caller stays French
+    assert route_language("ta", None) == "ta"

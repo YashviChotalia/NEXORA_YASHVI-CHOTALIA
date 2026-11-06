@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from anvesh.speech import audio as A  # noqa: E402
-from anvesh.speech.indic_asr import LANGUAGES  # noqa: E402
+from anvesh.speech.indic_asr import LANGUAGES, route_language  # noqa: E402
 
 NAME_TO_CODE = {v.lower(): k for k, v in LANGUAGES.items()}
 OUT = Path(__file__).with_name("results") / "multilingual"
@@ -43,18 +43,17 @@ def run(manifest: Path, cache: Path, budget: float) -> list[dict]:
     rows = [r for r in csv.DictReader(open(manifest, encoding="utf-8"))]
     t0 = time.time()
     for r in rows:
-        if r["path"] in done:
+        if r["path"] in done and done[r["path"]].get("indic_score") not in (None, ""):
             continue
         true = NAME_TO_CODE.get(r["lang"].lower(), r["lang"])
         x = A.decode((manifest.parent / r["path"]).read_bytes())
         lang_w = M.asr._language(w, x)
         ranked = ic.identify(x)
         lang_i = ranked[0][0]
-        app = lang_w
-        if M.ASR.use_indic(lang_w):
-            app = lang_i
+        app = route_language(lang_w, ranked) if lang_w != "en" else "en"
         done[r["path"]] = {"path": r["path"], "true": true, "label": r["label"], "whisper": lang_w, "indic": lang_i,
-                           "anvesh": app, "indic_top3": json.dumps([k for k, _ in ranked[:3]])}
+                           "anvesh": app, "indic_top3": json.dumps([k for k, _ in ranked[:3]]),
+                           "indic_score": round(ranked[0][1], 4)}
         if len(done) % 50 == 0:
             _save(cache, done)
             print(f"  {len(done)}/{len(rows)} clips, {time.time() - t0:.0f}s", flush=True)
@@ -67,7 +66,8 @@ def run(manifest: Path, cache: Path, budget: float) -> list[dict]:
 def _save(cache: Path, done: dict) -> None:
     cache.parent.mkdir(parents=True, exist_ok=True)
     with open(cache, "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["path", "true", "label", "whisper", "indic", "anvesh", "indic_top3"])
+        w = csv.DictWriter(fh, fieldnames=["path", "true", "label", "whisper", "indic", "anvesh", "indic_top3",
+                                           "indic_score"], extrasaction="ignore")
         w.writeheader()
         w.writerows(done.values())
 

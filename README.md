@@ -12,6 +12,7 @@
 ![Tests](https://img.shields.io/badge/tests-117%20passing-2ea44f)
 ![SER on phone audio](https://img.shields.io/badge/phone--line%20emotion%20recall-0.44%E2%86%920.72-2a78d6)
 ![Runs offline](https://img.shields.io/badge/runs-fully%20on%20a%20laptop-orange)
+![Languages](https://img.shields.io/badge/speech--to--text-22%20Indian%20languages%20%2B%20English-2a78d6)
 
 *Built for the VecnaVerse National Level Hackathon · Domain: Cybersecurity ·
 PS: Real-Time Speech Emotion Analysis for Cybercrime Investigation*
@@ -101,6 +102,16 @@ with their sources.
   nothing: the officer sees *"Connecting to Tele-MANAS in 10 s"* with **Cancel**, and if nobody cancels the
   helpline joins as a **three-way call**, so the officer stays on until the counsellor takes over. Women's helpline
   **181**, Childline **1098** and **1930** are one-click suggestions. Every step is in the audit log.
+
+**Languages**
+
+- **Speech-to-text in 22 Indian languages** (AI4Bharat IndicConformer) plus English, Hindi/Hinglish and foreign
+  languages (Whisper). The officer can set the caller's language at intake, or Anvesh detects it: on 14 Indian
+  languages from AI4Bharat Rasa it picks the right one **89%** of the time (Whisper alone: 46%).
+- **Voice emotion is only trusted where it was measured.** On languages it has never heard, voice emotion is much
+  weaker. English, Bengali and Manipuri passed a test fixed in advance and may change priority; Hindi and the other
+  tested languages show the voice reading as *not validated*, with no effect on priority.
+  [Details](EVALUATION.md#5-languages-speech-to-text-language-detection-and-emotion-beyond-english)
 
 **Investigation support**
 

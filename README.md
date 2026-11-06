@@ -278,6 +278,18 @@ npm run dev                            # http://localhost:3000
 
 ### Try it in two minutes
 
+**Fastest: the guided demo call.** **New intake → Guided demo call → Digital arrest (Hinglish)** plays a one-minute
+victim call through the real analysis: facts fill in with links to the words, priority rises, the voice distress
+line moves, *"jeene ka mann nahi"* starts the **Tele-MANAS countdown** and the helpline joins, 1930 is suggested and
+**Linked** finds the earlier cases with the same UPI ID. The words and voice clips are scripted (acted CREMA-D clips of
+a held-out speaker); everything after that is the real code. A Tamil version shows the hand-off in another script.
+
+**A real call between two screens.** Open <http://localhost:3000/call> in a second window (or a phone on the same
+network) and dial **1930**: the officer console rings, **Answer** opens the case, and the caller's microphone is
+transcribed and analysed live.
+
+**Evidence** (left menu) shows the measured results, each with the results file it came from.
+
 1. Open the **Training** workspace (bottom left) and click **AV-2026-T0001**. You'll see the coercion alert, the
    urgency assessment, and under **Details** each field with a ▶ link to the moment it was said.
 2. Open the **Linked** tab, then **Linked cases** in the sidebar, to see the fraud ring.
@@ -338,7 +350,7 @@ All settings are optional environment variables.
 
 ```bash
 cd backend
-pytest -q                                   # 142 unit and API tests (no models needed)
+pytest -q                                   # 149 unit and API tests (no models needed)
 python eval/run_eval.py                     # Hinglish field extraction: 38/38 on the development set
 python eval/get_eval_audio.py --crema-all   # CREMA-D clips + speaker demographics (once, ~500 MB)
 python eval/run_ser_eval.py --crema-d eval/audio/crema-d --holdout --limit 800   # studio, phone line, noise

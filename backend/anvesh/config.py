@@ -56,7 +56,13 @@ class Settings:
     text_embedder: str = os.getenv("ANVESH_TEXT_EMBEDDER", "")  # e.g. paraphrase-multilingual-MiniLM-L12-v2
 
     live_chunk_seconds: float = float(os.getenv("ANVESH_LIVE_CHUNK_SECONDS", "5"))
-    validated_languages: tuple[str, ...] = tuple(os.getenv("ANVESH_VALIDATED_LANGS", "en,hi").split(","))
+    # Voice distress per language (EVALUATION.md, "Languages"): VALIDATED languages passed the pre-stated test
+    # (held out of training, phone audio) and may change priority; MEASURED ones were tested but did not pass, so
+    # the voice reading is shown as indicative only and never changes priority; any other language abstains.
+    validated_languages: tuple[str, ...] = tuple(os.getenv("ANVESH_VALIDATED_LANGS", "en,bn,mni").split(","))
+    measured_languages: tuple[str, ...] = tuple(os.getenv(
+        "ANVESH_MEASURED_LANGS",
+        "hi,as,brx,doi,gu,kn,ks,kok,mai,ml,mr,ne,or,pa,sa,sat,sd,ta,te,ur,fr,it,pl,ru,es,de").split(","))
 
     @property
     def database_url(self) -> str:

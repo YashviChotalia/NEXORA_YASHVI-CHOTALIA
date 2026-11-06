@@ -83,8 +83,17 @@ def test_distress_abstains_without_audio_but_respects_crisis_words():
 def test_distress_abstains_on_unvalidated_language():
     w = [distress.Window(i * 3, i * 3 + 3, {"fearful": 0.8}, {"pitch_std": 10, "rms": 0.1, "speech_rate": 3,
                                                            "pause_ratio": 0.2, "snr_db": 30}) for i in range(5)]
-    r = distress.assess("victim", w, [], [], language="ta")
+    r = distress.assess("victim", w, [], [], language="xh")  # never measured
     assert r.score is None and any("not validated" in a for a in r.abstain_reasons)
+
+
+def test_measured_but_unvalidated_language_is_shown_but_never_validated():
+    w = [distress.Window(i * 3, i * 3 + 3, {"fearful": 0.8}, {"pitch_std": 10, "rms": 0.1, "speech_rate": 3,
+                                                           "pause_ratio": 0.2, "snr_db": 30}) for i in range(5)]
+    r = distress.assess("victim", w, [], [], language="ta", measured_languages={"ta", "hi"})
+    assert r.score is not None and not r.validated and r.confidence == "low"
+    assert any("not validated for 'ta'" in x for x in r.reasons)
+    assert distress.assess("victim", w, [], [], language="bn").validated
 
 
 def test_distress_uses_sustained_level_not_single_spike():

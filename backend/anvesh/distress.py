@@ -38,6 +38,7 @@ class DistressResult:
     reasons: list[str] = field(default_factory=list)
     abstain_reasons: list[str] = field(default_factory=list)
     label: str = "Acoustic and lexical observation, indicative only, not evidence."
+    validated: bool = True  # False: voice emotion was measured for this language but did not pass; no priority effect
     voice_score: float | None = None
     recent: float | None = None
     trend: str | None = None
@@ -81,7 +82,8 @@ def _acoustic_scores(windows: list[Window]) -> list[float | None]:
 
 def assess(role: str, windows: list[Window], lexical_hits: list[dict], crisis_hits: list[dict],
            language: str | None = None, validated_languages: set[str] | None = None,
-           coercion: bool = False, loss_reported: bool = False) -> DistressResult:
+           coercion: bool = False, loss_reported: bool = False,
+           measured_languages: set[str] | None = None) -> DistressResult:
     """Fuse voice (emotion + change against the caller's own baseline), words and situation.
 
     Voice is weighted most; words and situation can raise the level (a caller who says "please help,
@@ -93,8 +95,11 @@ def assess(role: str, windows: list[Window], lexical_hits: list[dict], crisis_hi
                               reasons=[f"Distress analysis is disabled for the '{role}' role by policy."])
 
     abstain: list[str] = []
-    validated_languages = validated_languages or {"en", "hi"}
-    if language and language not in validated_languages:
+    from .config import settings
+    validated_languages = validated_languages or set(settings.validated_languages)
+    measured_languages = set(settings.measured_languages) if measured_languages is None else measured_languages
+    validated = not language or language in validated_languages
+    if language and not validated and language not in measured_languages:
         abstain.append(f"Language '{language}' is not validated for voice distress; showing word cues only.")
     if not windows:
         abstain.append("No usable audio windows.")
@@ -164,6 +169,11 @@ def assess(role: str, windows: list[Window], lexical_hits: list[dict], crisis_hi
         trend = "rising" if late - early > 0.12 else "easing" if early - late > 0.12 else "steady"
         reasons.append(f"Voice distress is {trend} through the call")
     conf = "medium" if model_used and len(scores) >= 4 else "low"
+    if not validated:
+        conf = "low"
+        reasons.append(f"Voice emotion is measured but not validated for '{language}': indicative only, "
+                       "it does not change the call's priority")
     r = DistressResult(True, level, round(score, 3), conf, timeline, reasons, [])
+    r.validated = validated
     r.voice_score, r.recent, r.trend = round(voice, 3), round(recent, 3), trend
     return r

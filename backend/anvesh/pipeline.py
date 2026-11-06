@@ -269,14 +269,16 @@ def process(db: Session, case: Case, actor: str = "system", now: datetime | None
     loss = current.get("amount_lost")
     d = distress_mod.assess(role, windows, sig.distress_lexical, sig.crisis_hits, case.language,
                             set(settings.validated_languages), coercion=bool(sig.coercion_hits),
-                            loss_reported=_positive(loss.value if loss else None))
+                            loss_reported=_positive(loss.value if loss else None),
+                            measured_languages=set(settings.measured_languages))
     case.distress = d.to_dict()
 
     # 6) triage
     verified = {f.name for f in case.fields if f.status in ("verified", "corrected")}
     call_age = (now - case.call_started_at).total_seconds() / 60
-    t = triage_mod.assess(case.mode, current, now, coercion, crisis, d.level if d.enabled else None, verified,
-                          call_age)
+    # voice distress changes priority only in languages where it was validated (d.validated)
+    t = triage_mod.assess(case.mode, current, now, coercion, crisis,
+                          d.level if (d.enabled and d.validated) else None, verified, call_age)
     case.triage = t.to_dict()
     case.priority, case.priority_score = t.priority, t.score
 
